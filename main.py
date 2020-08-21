@@ -65,7 +65,7 @@ class FilterPrunner:
                 self.activation_index += 1
 
         return x
-    
+
     def backward_lrp(self, R, relevance_method='z'):
         for name, module in enumerate(self.model.network[::-1]):
             # print('module: {}, R_sum: {}, R_size: {}'.format(module, R.sum(), R.shape))
@@ -238,7 +238,7 @@ class PruningFineTuner:
 
         # self.train()
         # torch.save(self.model.state_dict(), 'model/' + 'model_' + str(self.dataset))
-        self.model.load_state_dict(torch.load('model/' + 'model_' + str(self.dataset)))
+        self.model.load_state_dict(torch.load('model/' + 'model_' + str(self.dataset), map_location='gpu' if torch.cuda.is_available() else 'cpu'))
         self.prunner = FilterPrunner(self.model)
 
     def total_num_filters(self):
@@ -311,7 +311,7 @@ class PruningFineTuner:
 
         self.model = model.cuda() if torch.cuda.is_available() else model
         message = str(100 * float(self.total_num_filters()) / number_of_dense) + "%"
-        print("Dense layers prunned", str(message))
+        print("Dense layers remaining", str(message))
         # self.test()
         #test
 
@@ -387,7 +387,7 @@ class PruningFineTuner:
         clf = np.where(db_prob < 0.5, 0, 1)
 
         Z = clf[:,0].reshape(XX.shape)
-        
+
         # scatter plot, dots colored by class value
         df = DataFrame(dict(x=X[:, 0].cpu().numpy().squeeze(), y=X[:, 1].cpu().numpy().squeeze(), label=pred.cpu().numpy().squeeze()))
         # colors = {0: 'red', 1: 'blue'}
@@ -411,8 +411,8 @@ if __name__ == "__main__":
     Test with Toy dataset
     '''
 
-    dataset = 'mult' #dataset: moon, circle, mult
-    method_type = 'grad' #pruning criteria: lrp, grad, taylor, weight
+    dataset = 'moon' #dataset: moon, circle, mult
+    method_type = 'lrp' #pruning criteria: lrp, grad, taylor, weight
 
     if dataset == 'moon' or dataset == 'circle':
         model = Net(num_class=2)
