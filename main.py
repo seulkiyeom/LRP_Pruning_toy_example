@@ -290,6 +290,7 @@ class PruningFineTuner:
         correct = pred.eq(self.y.data.view_as(pred)).cpu().sum()
         print('Test Accuracy: {}'.format((float(correct/len(self.y)) * 100)))
 
+
     def prune(self, method_type = 'lrp'):
 
         number_of_dense = self.total_num_filters()
