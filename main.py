@@ -1,6 +1,8 @@
 from collections import OrderedDict
+import argparse
 
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 from sklearn.datasets import make_moons, make_circles, make_classification
 from pandas import DataFrame
@@ -48,13 +50,15 @@ def fhook(self, input, output):
 
 class FilterPruner:
     def __init__(self, model):
+        # TODO: introcude criterion via constructor.
         self.model = model
+        self.pruning_criterion = None
         self.reset()
 
-    def reset(self, method_type = 'lrp'):
+    def reset(self, pruning_criterion = 'lrp'):
         self.filter_ranks = {}
         self.forward_hook()
-        self.method_type = method_type
+        self.pruning_criterion = pruning_criterion
 
     def forward_hook(self):
         for name, module in self.model.network._modules.items():
@@ -115,17 +119,17 @@ class FilterPruner:
         activation = self.activations[activation_index]
         # print('Index: {}, activation: {}, grad: {}, weight: {}'.format(activation_index, activation.shape, grad.shape, self.weights[activation_index].shape))
 
-        if self.method_type == 'taylor':
+        if self.pruning_criterion == 'taylor':
             values = torch.sum((activation * grad), dim=0, keepdim=True)[0, :].data  # P. Molchanov et al., ICLR 2017
             # Normalize the rank by the filter dimensions
             values /= activation.size(0)
 
-        elif self.method_type == 'grad':
+        elif self.pruning_criterion == 'grad':
             values = torch.sum(grad, dim=0, keepdim=True)[0, :].data  # X. Sun et al., ICML 2017
             # Normalize the rank by the filter dimensions
             values /= activation.size(0)
 
-        elif self.method_type == 'weight':
+        elif self.pruning_criterion == 'weight':
             weight = self.weights[activation_index]
             values = torch.sum(weight.abs(), dim=1, keepdim=True)[:, 0].data  # Many publications based on weight and activation(=feature) map
             # Normalize the rank by the filter dimensions
@@ -146,33 +150,33 @@ class FilterPruner:
     def normalize_ranks_per_layer(self, norm = True):
         for i in range(len(self.filter_ranks)):
 
-            if self.method_type == 'lrp':  # average over trials - LRP case (this is not normalization !!)
+            if self.pruning_criterion == 'lrp':  # average over trials - LRP case (this is not normalization !!)
                 v = self.filter_ranks[i]
                 v /= torch.sum(v)  # torch.sum(v) = total number of dataset
                 self.filter_ranks[i] = v.cpu()
             else:
                 if norm:  # L2-norm for global rescaling
-                    if self.method_type == 'weight':  # weight & L1-norm (Li et al., ICLR 2017)
+                    if self.pruning_criterion == 'weight':  # weight & L1-norm (Li et al., ICLR 2017)
                         v = self.filter_ranks[i]
                         v /= torch.sum(v)  # L1
                         # v = v / torch.sqrt(torch.sum(v * v)) #L2
                         self.filter_ranks[i] = v.cpu()
-                    elif self.method_type == 'taylor':  # |grad*act| & L2-norm (Molchanov et al., ICLR 2017)
+                    elif self.pruning_criterion == 'taylor':  # |grad*act| & L2-norm (Molchanov et al., ICLR 2017)
                         v = torch.abs(self.filter_ranks[i])
                         v /= torch.sqrt(torch.sum(v * v))
                         self.filter_ranks[i] = v.cpu()
-                    elif self.method_type == 'grad':  # |grad| & L2-norm (Sun et al., ICML 2017)
+                    elif self.pruning_criterion == 'grad':  # |grad| & L2-norm (Sun et al., ICML 2017)
                         v = torch.abs(self.filter_ranks[i])
                         v /= torch.sqrt(torch.sum(v * v))
                         self.filter_ranks[i] = v.cpu()
                 else:
-                    if self.method_type == 'weight':  # weight
+                    if self.pruning_criterion == 'weight':  # weight
                         v = self.filter_ranks[i]
                         self.filter_ranks[i] = v.cpu()
-                    elif self.method_type == 'taylor':  # |grad*act|
+                    elif self.pruning_criterion == 'taylor':  # |grad*act|
                         v = torch.abs(self.filter_ranks[i])
                         self.filter_ranks[i] = v.cpu()
-                    elif self.method_type == 'grad':  # |grad|
+                    elif self.pruning_criterion == 'grad':  # |grad|
                         v = torch.abs(self.filter_ranks[i])
                         self.filter_ranks[i] = v.cpu()
 
@@ -254,10 +258,11 @@ class PruningFineTuner:
                 dense_filters += module.out_features
         return dense_filters
 
-    def get_candidates_to_prune(self, num_filters_to_prune, method_type = 'lrp'):
-        self.pruner.reset(method_type)
+    def get_candidates_to_prune(self, num_filters_to_prune, pruning_criterion='lrp'):
+        #TODO: make criterion self.parameter
+        self.pruner.reset(pruning_criterion)
 
-        if method_type == 'lrp':
+        if pruning_criterion == 'lrp':
             output = self.pruner.forward_lrp(self.X)
 
             T = torch.zeros_like(output)
@@ -293,10 +298,10 @@ class PruningFineTuner:
         print('Test Accuracy on "{}": {}'.format(self.dataset, (float(correct/len(self.y)) * 100)))
 
 
-    def prune(self, method_type = 'lrp'):
+    def prune(self, pruning_criterion = 'lrp'):
         number_of_dense = self.get_total_number_of_filters()
         filters_to_prune_per_iteration = 1000 #the number of pruned filter
-        prune_targets = self.get_candidates_to_prune(filters_to_prune_per_iteration, method_type)
+        prune_targets = self.get_candidates_to_prune(filters_to_prune_per_iteration, pruning_criterion)
 
         layers_pruned = {}
         for layer_index, filter_index in prune_targets:
@@ -429,25 +434,45 @@ if __name__ == "__main__":
     '''
     Pruning test with toy dataset
     '''
+    valid_datasets      = ['moon', 'circle', 'mult']
+    valid_criteria      = ['lrp', 'taylor', 'grad', 'weight']
+    valid_rendermodes   = ['none', 'svg', 'show']   # no visualizion, only svg output, on-screen figure
+    num_classes         = {'moon':2, 'circle':2, 'mult':4}
 
 
+    parser = argparse.ArgumentParser(description = 'Neural Network Pruning Toy experiment')
+    parser.add_argument('--dataset',    '-d', type=str, default='moon',         help='The toy dataset to use. Choices: {}'.format(', '.join(valid_datasets)))
+    parser.add_argument('--criterion',  '-c', type=str, default='lrp',          help='The criterion to use for pruning. Choices: {}'.format(', '.join(valid_criteria)))
+    parser.add_argument('--numsamples', '-n', type=int, default=5,              help='Number of training samples to use for computing the pruning criterion.')
+    parser.add_argument('--seed',       '-s', type=int, default=1,              help='Random seed used for (random) sample selection for pruning criterion computation.')
+    parser.add_argument('--rendermode', '-r', type=str, default='none',         help='Is result visualization desired? Choices: {}'.format(', '.join(valid_rendermodes)))
+    parser.add_argument('--logfile',    '-l', type=str, default='./log.txt',    help='Output log file location. Results will pe appended. File location must exist!')
+    args = parser.parse_args()
 
-    dataset = 'moon' #dataset: moon, circle, mult
-    method_type = 'taylor' #pruning criteria: lrp, grad, taylor, weight
+    #TODO use rendermode
+    #TODO use numsamples
+    #TODO use seed
+    #TODO use logfile. results must be well-formated, in one line each, e.g. as a json dict with all the stuff
 
-    if dataset == 'moon' or dataset == 'circle':
-        model = Net(num_class=2)
-    elif dataset == 'mult':
-        model = Net(num_class=4)
+    # verify parametrer choices
+    assert args.dataset     in valid_datasets,      'Invalid dataset choice "{}". Must be from {}'.format(args.dataset, valid_datasets)
+    assert args.criterion   in valid_criteria,      'Invalid pruning criterion "{}". Must be from {}'.format(args.criterion, valid_criteria)
+    assert args.numsamples  > 0,                    'Number of samples for pruning criterion computation must be > 0, but was {}'.format(args.num_samples)
+    assert args.render_mode in valid_rendermodes,   'Invalid render mode "{}". Must be from {}'.format(args.render_mode, valid_rendermodes)
 
-    if torch.cuda.is_available():
-        model = model.cuda()
+    logdir = os.path.dirname(args.logfile)
+    assert os.path.isdir(logdir),                   'Log file location "{}". does not exist. Will not be able to create log file!'.format(logdir)
 
-    # TODO. logging.
-    fine_tuner = PruningFineTuner(model, dataset = dataset) # TODO let this one generate / load all the data.
-    fine_tuner.visualize_before(scenario= 'train') # I think this is not required at all
-    #fine_tuner.visualize_after(scenario= 'train') # TODO load dataset here, make distinction between pre-and post eval obsolete. # TODO: measure performance independently from visualization
-    fine_tuner.prune(method_type = method_type)
-    fine_tuner.visualize_after(scenario= 'test')
-    fine_tuner.visualize_after(scenario= 'train')
+
+    model = Net(num_class=num_classes[args.dataset])
+    if torch.cuda.is_available(): model = model.cuda()
+
+    # TODO. logging. in PruningFineTuner
+    fine_tuner = PruningFineTuner(model, dataset=args.dataset) # TODO let this one generate / load all the data.
+    fine_tuner.visualize_before(scenario='train') # I think this is not required at all
+    #fine_tuner.visualize_after(scenario='train') # TODO load dataset here, make distinction between pre-and post eval obsolete. # TODO: measure performance independently from visualization
+    fine_tuner.prune(pruning_criterion=args.criterion) # TODO: give pruning fine-tuner in constructor the prunig method. thus removes all output file hard coding
+    fine_tuner.visualize_after(scenario='test')
+    fine_tuner.visualize_after(scenario='train')
     print('Done')
+
