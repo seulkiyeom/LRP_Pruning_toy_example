@@ -419,13 +419,15 @@ class PruningFineTuner:
         #df = DataFrame(dict(x=X[:, 0].cpu().numpy().squeeze(), y=X[:, 1].cpu().numpy().squeeze(), label=pred.cpu().numpy().squeeze()))
         # colors = {0: 'red', 1: 'blue'}
         #colors = {0: 'red', 1: 'blue', 2: 'green', 3: 'black'}
-        cmap = plt.cm.Accent
+        colors = ['red', 'blue', 'green', 'black']
+        cmapname='Dark2' #'Set1'
+        cmap=plt.cm.get_cmap(cmapname, num_classes) #<--- THIS IS THE RIGHT SOLUTION.
         fig, ax = plt.subplots()
 
         #TODO build fixed four-class colormap for stuff.
         print(np.unique(Z))
-        plt.contourf(XX, YY, Z, alpha=.5, cmap=cmap, vmin=0, vmax=num_classes-1) #colors=[c for c in colors.values()][:num_classes]) #, levels=range(num_classes), colors=[x for x in colors.values()][:num_classes], alpha=0.5)
-        plt.scatter(x=X[:,0], y=X[:,1], c=y, cmap=cmap, vmin=0, vmax=num_classes-1) #colors=[c for c in colors.values()][:num_classes])
+        plt.contourf(XX, YY, Z, alpha=.5, cmap=cmap) #colors=[c for c in colors.values()][:num_classes]) #, levels=range(num_classes), colors=[x for x in colors.values()][:num_classes], alpha=0.5)
+        plt.scatter(x=X[:,0], y=X[:,1], c=y, cmap=cmap) #colors=[c for c in colors.values()][:num_classes])
 
             #cmap=plt.cm.tab10, alpha=1)
         #grouped = df.groupby('label')
@@ -457,11 +459,12 @@ if __name__ == "__main__":
 
 
     parser = argparse.ArgumentParser(description = 'Neural Network Pruning Toy experiment')
-    parser.add_argument('--dataset',    '-d', type=str, default='mult',         help='The toy dataset to use. Choices: {}'.format(', '.join(valid_datasets)))
-    parser.add_argument('--criterion',  '-c', type=str, default='lrp',          help='The criterion to use for pruning. Choices: {}'.format(', '.join(valid_criteria)))
-    parser.add_argument('--numsamples', '-n', type=int, default=5,              help='Number of training samples to use for computing the pruning criterion.')
-    parser.add_argument('--seed',       '-s', type=int, default=1,              help='Random seed used for (random) sample selection for pruning criterion computation.')
-    parser.add_argument('--rendermode', '-r', type=str, default='none',         help='Is result visualization desired? Choices: {}'.format(', '.join(valid_rendermodes)))
+    parser.add_argument('--dataset',    '-d',   type=str, default='mult',         help='The toy dataset to use. Choices: {}'.format(', '.join(valid_datasets)))
+    parser.add_argument('--criterion',  '-c',   type=str, default='lrp',          help='The criterion to use for pruning. Choices: {}'.format(', '.join(valid_criteria)))
+    parser.add_argument('--numsamples', '-n',   type=int, default=5,              help='Number of training samples to use for computing the pruning criterion.')
+    parser.add_argument('--seed',       '-s',   type=int, default=1,              help='Random seed used for (random) sample selection for pruning criterion computation.')
+    parser.add_argument('--rendermode', '-r',   type=str, default='none',         help='Is result visualization desired? Choices: {}'.format(', '.join(valid_rendermodes)))
+    parser.add_argument('--colormap',   '-cm',  type=str, default='Dark2',        help='The colormap to use for rendering the output figures. Must be a valid one from matplotlib.')
     parser.add_argument('--logfile',    '-l', type=str, default='./log.txt',    help='Output log file location. Results will pe appended. File location must exist!')
     args = parser.parse_args()
 
@@ -469,6 +472,7 @@ if __name__ == "__main__":
     #TODO use rendermode
     #TODO use numsamples
     #TODO use seed
+    #TODO use colormap
     #TODO use logfile. results must be well-formated, in one line each, e.g. as a json dict with all the stuff
     #TODO make datasets part of PruningFineTuner, e.g. during __init__ load the prepared training data and based on the random seed select data for pruning
     #TODO let PruningFineTuner take care of the result logging. use json to dump easily parsable dicts
@@ -478,9 +482,11 @@ if __name__ == "__main__":
     assert args.criterion   in valid_criteria,      'Invalid pruning criterion "{}". Must be from {}'.format(args.criterion, valid_criteria)
     assert args.numsamples  > 0,                    'Number of samples (per class) used for pruning criterion computation must be > 0, but was {}'.format(args.num_samples)
     assert args.rendermode  in valid_rendermodes,   'Invalid render mode "{}". Must be from {}'.format(args.rendermode, valid_rendermodes)
+    assert args.colormap in plt.colormaps(),        'Invalid colormap choice "{}". Must be from matplotlib.pyplot.colormaps(), i.e. {}'.format(args.colormap, plt.colormaps())
 
     logdir = os.path.dirname(args.logfile)
     assert os.path.isdir(logdir),                   'Log file location "{}". does not exist. Will not be able to create log file!'.format(logdir)
+
 
 
     model = Net(num_class=num_classes[args.dataset])
