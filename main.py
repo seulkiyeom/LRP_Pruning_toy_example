@@ -454,7 +454,7 @@ if __name__ == "__main__":
     '''
     valid_datasets      = ['moon', 'circle', 'mult']
     valid_criteria      = ['lrp', 'taylor', 'grad', 'weight']
-    valid_rendermodes   = ['none', 'svg', 'show']   # no visualizion, only svg output, on-screen figure
+    valid_rendermodes   = ['none', 'svg', 'show']   # no visualizion, only svg output, svg+on-screen figure
     num_classes         = {'moon':2, 'circle':2, 'mult':4}
 
 
