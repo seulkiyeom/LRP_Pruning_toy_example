@@ -241,14 +241,16 @@ class PruningFineTuner:
         self.model.load_state_dict(torch.load('model/' + 'model_' + str(self.dataset), map_location='gpu' if torch.cuda.is_available() else 'cpu'))
         self.prunner = FilterPrunner(self.model)
 
-    def total_num_filters(self):
-        # Conv layer? ?? filter ?? counting
+
+    def get_total_number_of_filters(self):
+        # counts the total number of non-output dense layer filters in the network
         dense_filters = 0
         for name, module in self.model.network._modules.items():
-            if isinstance(module, torch.nn.modules.linear.Linear) and name != 'output' and name != '6':
+            if isinstance(module, torch.nn.modules.linear.Linear)
+                and not name in ['output', '6']:
                 dense_filters += module.out_features
-
         return dense_filters
+
 
     def get_candidates_to_prune(self, num_filters_to_prune, method_type = 'lrp'):
         self.prunner.reset(method_type)
@@ -293,7 +295,7 @@ class PruningFineTuner:
 
     def prune(self, method_type = 'lrp'):
 
-        number_of_dense = self.total_num_filters()
+        number_of_dense = self.get_total_number_of_filters()
         filters_to_prune_per_iteration = 1000 #the number of pruned filter
         prune_targets = self.get_candidates_to_prune(filters_to_prune_per_iteration, method_type)
 
@@ -311,7 +313,7 @@ class PruningFineTuner:
             model = prune_layer_toy(model, layer_index, filter_index, cuda_flag=torch.cuda.is_available())
 
         self.model = model.cuda() if torch.cuda.is_available() else model
-        message = str(100 * float(self.total_num_filters()) / number_of_dense) + "%"
+        message = str(100 * float(self.get_total_number_of_filters()) / number_of_dense) + "%"
         print("Dense layers remaining", str(message))
         # self.test()
         #test
