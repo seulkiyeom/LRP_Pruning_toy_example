@@ -178,7 +178,6 @@ class FilterPruner:
 
     def get_pruning_plan(self, num_filters_to_prune):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
-        print(filters_to_prune)
         # filters_to_prune contains tuples of: (layer number, filter index, its)
 
         # After each of the k filters are pruned,
@@ -208,11 +207,15 @@ class FilterPruner:
                 data.append((self.activation_to_layer[i], j, self.filter_ranks[i][j]))
         return nsmallest(num, data, itemgetter(2))
 
+
+
+
 class PruningFineTuner:
-    def __init__(self, model, dataset = 'moon'):
-        torch.manual_seed(1)
+    def __init__(self, model, dataset = 'moon', random_seed=1):
+        torch.manual_seed(random_seed)
 
         self.dataset = dataset
+        # TODO generate data based on seed on the fly, instead of loading it.
         ## generate 2d classification dataset
         # X, y = make_moons(n_samples=2000, noise=0.1)
         # X, y = make_circles(n_samples=10, noise=0.1, factor=0.3, random_state=0)
@@ -221,25 +224,26 @@ class PruningFineTuner:
         # np.save('test_X', X)
         # np.save('test_y', y)
 
+        #numpy
         X = np.load('data/' + str(self.dataset) + '_test_X.npy')
         y = np.load('data/' + str(self.dataset) + '_test_y.npy')
 
+        #to torch
+        X = torch.from_numpy(X)
+        y = torch.from_numpy(y)
         if torch.cuda.is_available():
-            X, y = torch.from_numpy(X).cuda(), torch.from_numpy(y).cuda()
-        else:
-            X, y = torch.from_numpy(X), torch.from_numpy(y)
+            X = X.cuda()
+            y = y.cuda()
 
         self.X, self.y = Variable(X), Variable(y)
-
         self.model = model
         self.criterion = nn.CrossEntropyLoss()
 
         # self.train()
         # torch.save(self.model.state_dict(), 'model/' + 'model_' + str(self.dataset))
-        self.model.load_state_dict(torch.load('model/' + 'model_' + str(self.dataset), map_location='gpu' if torch.cuda.is_available() else 'cpu'))
+        self.model.load_state_dict(torch.load('model/' + 'model_' + str(self.dataset),\
+                                    map_location='gpu' if torch.cuda.is_available() else 'cpu'))
         self.pruner = FilterPruner(self.model)
-
-
 
     def get_total_number_of_filters(self):
         # counts the total number of non-output dense layer filters in the network
@@ -250,8 +254,6 @@ class PruningFineTuner:
                 dense_filters += module.out_features
         return dense_filters
 
-
-
     def get_candidates_to_prune(self, num_filters_to_prune, method_type = 'lrp'):
         self.pruner.reset(method_type)
 
@@ -259,9 +261,8 @@ class PruningFineTuner:
             output = self.pruner.forward_lrp(self.X)
 
             T = torch.zeros_like(output)
-            for ii in range(self.y.size(0)):  # each data (= 20)
+            for ii in range(self.y.size(0)):
                 T[ii, self.y[ii]] = 1.0
-
             self.pruner.backward_lrp(output * T)
 
         else:
@@ -270,7 +271,6 @@ class PruningFineTuner:
             loss.backward()
 
         self.pruner.normalize_ranks_per_layer()
-
         return self.pruner.get_pruning_plan(num_filters_to_prune)
 
     def train(self):
@@ -290,11 +290,10 @@ class PruningFineTuner:
         output = self.model(self.X)
         pred = output.data.max(1, keepdim=True)[1]
         correct = pred.eq(self.y.data.view_as(pred)).cpu().sum()
-        print('Test Accuracy: {}'.format((float(correct/len(self.y)) * 100)))
+        print('Test Accuracy on "{}": {}'.format(self.dataset, (float(correct/len(self.y)) * 100)))
 
 
     def prune(self, method_type = 'lrp'):
-
         number_of_dense = self.get_total_number_of_filters()
         filters_to_prune_per_iteration = 1000 #the number of pruned filter
         prune_targets = self.get_candidates_to_prune(filters_to_prune_per_iteration, method_type)
@@ -305,36 +304,42 @@ class PruningFineTuner:
                 layers_pruned[layer_index] = 0
             layers_pruned[layer_index] += 1
 
-        print("Dense layers that will be pruned", layers_pruned)  # ? ?? layer ? filter ?
+        print("# of dense layer filters per layer selected for pruning:", layers_pruned)
         print("Pruning filters.. ")
         model = self.model.cpu()
-        for layer_index, filter_index in prune_targets:  # ??? ??? ??? ??
+        for layer_index, filter_index in prune_targets:
             # print("Layer index: {}, Filter index: {}".format(layer_index, filter_index))
             model = prune_layer_toy(model, layer_index, filter_index, cuda_flag=torch.cuda.is_available())
 
-        self.model = model.cuda() if torch.cuda.is_available() else model
+        self.model = model
+        if torch.cuda.is_available():
+            self.model = self.model.cuda()
         message = str(100 * float(self.get_total_number_of_filters()) / number_of_dense) + "%"
-        print("Dense layers remaining", str(message))
+        print("Fraction of remaining dense layer filters:", str(message))
         # self.test()
         #test
 
-    def visualize_before(self, type = 'train'):
+    def visualize_before(self, scenario = 'train'):
         # scatter plot, dots colored by class value
-        X = np.load('data/' + self.dataset + '_' + type + '_X.npy')
-        y = np.load('data/' + self.dataset + '_' + type + '_y.npy')
+        # TODO LOAD SEED-GENERATED DATASET. OR PASS AS PARAMETERS
+        X = np.load('data/' + self.dataset + '_' + scenario + '_X.npy')
+        y = np.load('data/' + self.dataset + '_' + scenario + '_y.npy')
 
+        #to torch
+        X = torch.from_numpy(X)
+        y = torch.from_numpy(y)
         if torch.cuda.is_available():
-            X, y = torch.from_numpy(X).cuda(), torch.from_numpy(y).cuda()
-        else:
-            X, y = torch.from_numpy(X), torch.from_numpy(y)
+            X = X.cuda()
+            y = y.cuda()
 
         self.X, self.y = Variable(X), Variable(y)
-
         self.model.eval()
+
         output = self.model(X)
         pred = output.data.max(1, keepdim=True)[1]
         correct = pred.eq(y.data.view_as(pred)).cpu().sum()
-        print('{} Accuracy: {}'.format(str(type), float(correct)/float(len(X))))
+        acc = float(correct)/float(len(X)) * 100
+        print('{} accuracy: {}%'.format(str(scenario), acc))
 
         df = DataFrame(
             dict(x=X[:, 0].cpu().numpy().squeeze(), y=self.X[:, 1].cpu().numpy().squeeze(), label=self.y.cpu().numpy().squeeze()))
@@ -344,26 +349,31 @@ class PruningFineTuner:
         grouped = df.groupby('label')
         for key, group in grouped:
             group.plot(ax=ax, kind='scatter', x='x', y='y', label=key, color=colors[key])
-
+        plt.title('Pre-pruning {} accurarcy = {}%'.format(scenario, acc))
         plt.show()
 
-    def visualize_after(self, type = 'train'):
+
+    def visualize_after(self, scenario = 'train'):
         # scatter plot, dots colored by class value
-        X = np.load('data/' + self.dataset + '_' + type + '_X.npy')
-        y = np.load('data/' + self.dataset + '_' + type + '_y.npy')
+        # TODO LOAD SEED-GENERATED DATASET. OR PASS AS PARAMETERS
+        X = np.load('data/' + self.dataset + '_' + scenario + '_X.npy')
+        y = np.load('data/' + self.dataset + '_' + scenario + '_y.npy')
 
+        #to torch
+        X = torch.from_numpy(X)
+        y = torch.from_numpy(y)
         if torch.cuda.is_available():
-            X, y = torch.from_numpy(X).cuda(), torch.from_numpy(y).cuda()
-        else:
-            X, y = torch.from_numpy(X), torch.from_numpy(y)
+            X = X.cuda()
+            y = y.cuda()
 
-        X, y = Variable(X), Variable(y)
-
+        self.X, self.y = Variable(X), Variable(y)
         self.model.eval()
+
         output = self.model(X)
         pred = output.data.max(1, keepdim=True)[1]
         correct = pred.eq(y.data.view_as(pred)).cpu().sum()
-        print('{} Accuracy: {}'.format(str(type), float(correct)/float(len(X))))
+        acc = float(correct)/float(len(X)) * 100
+        print('Post-pruning {} accuracy = {}%'.format(scenario, acc))
 
         x_min, x_max = X[:, 0].min() - 0.1, X[:, 0].max() + 0.1
         y_min, y_max = X[:, 1].min() - 0.1, X[:, 1].max() + 0.1
@@ -379,12 +389,12 @@ class PruningFineTuner:
         data = np.hstack((XX.ravel().reshape(-1, 1),
                           YY.ravel().reshape(-1, 1)))
 
-        # Pass data to predict method
+        # to torch
+        data_t = torch.FloatTensor(data)
         if torch.cuda.is_available():
-            data_t = torch.FloatTensor(data).cuda()
-        else:
-            data_t = torch.FloatTensor(data)
+            data_t.cuda()
 
+        # Pass data to predict method
         db_prob = self.model(data_t)
 
         clf = np.where(db_prob < 0.5, 0, 1)
@@ -402,11 +412,14 @@ class PruningFineTuner:
             group.plot(ax=ax, kind='scatter', x='x', y='y', label=key, color=colors[key])
 
         plt.contourf(XX, YY, Z, cmap=plt.cm.Accent, alpha=0.5)
+        # TODO remove hard coding of canvas limits
         plt.xlim(-1.4154078960418701, 2.3496716022491455) #moon
         plt.ylim(-0.8391216397285461, 1.4337007403373718) #moon
         # plt.xlim(-1.3220499753952026, 1.3229042291641235) #circle
         # plt.ylim(-1.3928583860397339, 1.305529236793518) #circle
+        plt.title('Pre-pruning {} accurarcy = {}%'.format(scenario, acc))
         plt.show()
+        # TODO remove hardoding of output file name
         fig.savefig('grad.svg', dpi=fig.dpi)
 
 
@@ -430,9 +443,11 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         model = model.cuda()
 
-    fine_tuner = PruningFineTuner(model, dataset = dataset)
-    fine_tuner.visualize_before(type= 'train')
+    # TODO. logging.
+    fine_tuner = PruningFineTuner(model, dataset = dataset) # TODO let this one generate / load all the data.
+    fine_tuner.visualize_before(scenario= 'train') # I think this is not required at all
+    #fine_tuner.visualize_after(scenario= 'train') # TODO load dataset here, make distinction between pre-and post eval obsolete. # TODO: measure performance independently from visualization
     fine_tuner.prune(method_type = method_type)
-    fine_tuner.visualize_after(type= 'test')
-    fine_tuner.visualize_after(type= 'train')
+    fine_tuner.visualize_after(scenario= 'test')
+    fine_tuner.visualize_after(scenario= 'train')
     print('Done')
