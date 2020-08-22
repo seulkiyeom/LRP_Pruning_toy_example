@@ -1,4 +1,3 @@
-
 from collections import OrderedDict
 
 import numpy as np
@@ -20,9 +19,6 @@ from heapq import nsmallest
 from operator import itemgetter
 
 
-def fhook(self, input, output):
-    self.input = input[0]
-    self.output = output.data
 
 
 class Net(nn.Module):
@@ -44,6 +40,11 @@ class Net(nn.Module):
         return X
 
 
+
+
+def fhook(self, input, output):
+    self.input = input[0]
+    self.output = output.data
 
 class FilterPruner:
     def __init__(self, model):
@@ -69,7 +70,6 @@ class FilterPruner:
             if isinstance(module, torch.nn.modules.linear.Linear) and name != 'output':
                 self.activation_to_layer[self.activation_index] = layer
                 self.activation_index += 1
-
         return x
 
     def backward_lrp(self, R, relevance_method='z'):
@@ -78,14 +78,13 @@ class FilterPruner:
 
             if isinstance(module, torch.nn.modules.linear.Linear) and name != 0:  # !!!
                 activation_index = self.activation_index - self.grad_index - 1
-
-                values = \
-                    torch.sum(R, dim=0, keepdim=True)[0, :].data
+                values = torch.sum(R, dim=0, keepdim=True)[0, :].data
 
                 if activation_index not in self.filter_ranks:
-                    self.filter_ranks[activation_index] = torch.FloatTensor(
-                        R.size(1)).zero_().cuda() if torch.cuda.is_available() else torch.FloatTensor(
-                        R.size(1)).zero_()
+                    zero = torch.FloatTensor(R.size(1)).zero_()
+                    if torch.cuda.is_available():
+                        zero = zero.cuda()
+                    self.filter_ranks[activation_index] = zero
 
                 self.filter_ranks[activation_index] += values
                 self.grad_index += 1
@@ -94,7 +93,7 @@ class FilterPruner:
 
     def forward(self, x):
         in_size = x.size(0)
-        self.activations = []  # ?? conv_layer? activation map ?
+        self.activations = []
         self.weights = []
         self.gradients = []
         self.activation_to_layer = {}
@@ -117,34 +116,29 @@ class FilterPruner:
         # print('Index: {}, activation: {}, grad: {}, weight: {}'.format(activation_index, activation.shape, grad.shape, self.weights[activation_index].shape))
 
         if self.method_type == 'taylor':
-            values = \
-                torch.sum((activation * grad), dim=0, keepdim=True)[0, :].data  # P. Molchanov et al., ICLR 2017
+            values = torch.sum((activation * grad), dim=0, keepdim=True)[0, :].data  # P. Molchanov et al., ICLR 2017
             # Normalize the rank by the filter dimensions
-            values = \
-                values / activation.size(0)
+            values /= activation.size(0)
 
         elif self.method_type == 'grad':
-            values = \
-                torch.sum(grad, dim=0, keepdim=True)[0, :].data  # X. Sun et al., ICML 2017
+            values = torch.sum(grad, dim=0, keepdim=True)[0, :].data  # X. Sun et al., ICML 2017
             # Normalize the rank by the filter dimensions
-            values = \
-                values / activation.size(0)
+            values /= activation.size(0)
 
         elif self.method_type == 'weight':
             weight = self.weights[activation_index]
-            values = \
-                torch.sum(weight.abs(), dim=1, keepdim=True)[:,
-                0].data  # Many publications based on weight and activation(=feature) map
+            values = torch.sum(weight.abs(), dim=1, keepdim=True)[:, 0].data  # Many publications based on weight and activation(=feature) map
             # Normalize the rank by the filter dimensions
-            values = \
-                values / activation.size(0)
+            values /= activation.size(0)
 
         else:
-            raise ValueError('No criteria')
+            raise ValueError('No criterion given')
 
         if activation_index not in self.filter_ranks:
-            self.filter_ranks[activation_index] = torch.FloatTensor(
-                activation.size(1)).zero_().cuda() if torch.cuda.is_available() else torch.FloatTensor(activation.size(1)).zero_()
+            zero = torch.FloatTensor(activation.size(1)).zero_()
+            if torch.cuda.is_available():
+                zero = zero.cuda()
+            self.filter_ranks[activation_index] = zero
 
         self.filter_ranks[activation_index] += values
         self.grad_index += 1
@@ -154,22 +148,22 @@ class FilterPruner:
 
             if self.method_type == 'lrp':  # average over trials - LRP case (this is not normalization !!)
                 v = self.filter_ranks[i]
-                v = v / torch.sum(v)  # torch.sum(v) = total number of dataset
+                v /= torch.sum(v)  # torch.sum(v) = total number of dataset
                 self.filter_ranks[i] = v.cpu()
             else:
                 if norm:  # L2-norm for global rescaling
                     if self.method_type == 'weight':  # weight & L1-norm (Li et al., ICLR 2017)
                         v = self.filter_ranks[i]
-                        v = v / torch.sum(v)  # L1
+                        v /= torch.sum(v)  # L1
                         # v = v / torch.sqrt(torch.sum(v * v)) #L2
                         self.filter_ranks[i] = v.cpu()
                     elif self.method_type == 'taylor':  # |grad*act| & L2-norm (Molchanov et al., ICLR 2017)
                         v = torch.abs(self.filter_ranks[i])
-                        v = v / torch.sqrt(torch.sum(v * v))
+                        v /= torch.sqrt(torch.sum(v * v))
                         self.filter_ranks[i] = v.cpu()
                     elif self.method_type == 'grad':  # |grad| & L2-norm (Sun et al., ICML 2017)
                         v = torch.abs(self.filter_ranks[i])
-                        v = v / torch.sqrt(torch.sum(v * v))
+                        v /= torch.sqrt(torch.sum(v * v))
                         self.filter_ranks[i] = v.cpu()
                 else:
                     if self.method_type == 'weight':  # weight
@@ -184,7 +178,8 @@ class FilterPruner:
 
     def get_pruning_plan(self, num_filters_to_prune):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
-        # filters_to_prune: filters to be pruned 1) layer number, 2) filter number, 3) its value
+        print(filters_to_prune)
+        # filters_to_prune contains tuples of: (layer number, filter index, its)
 
         # After each of the k filters are pruned,
         # the filter index of the next filters change since the model is smaller.
@@ -196,8 +191,7 @@ class FilterPruner:
 
         for l in filters_to_prune_per_layer:
             filters_to_prune_per_layer[l] = sorted(filters_to_prune_per_layer[l])
-            for i in range(len(filters_to_prune_per_layer[l])):  # ?? ? ???!
-                # ? ? layer? ???? ??? ??? ?? ?? ?? ??????
+            for i in range(len(filters_to_prune_per_layer[l])):
                 filters_to_prune_per_layer[l][i] = filters_to_prune_per_layer[l][i] - i
 
         filters_to_prune = []
@@ -205,16 +199,14 @@ class FilterPruner:
             for i in filters_to_prune_per_layer[l]:
                 filters_to_prune.append((l, i))
 
-        return filters_to_prune  # ??? ? filter?? 1) layer number, 2) filter number
+        return filters_to_prune
 
     def lowest_ranking_filters(self, num):
         data = []
         for i in sorted(self.filter_ranks.keys()):
             for j in range(self.filter_ranks[i].size(0)):
                 data.append((self.activation_to_layer[i], j, self.filter_ranks[i][j]))
-                # data ??? ?? layer? ?? filter? ?? ?? ?? ???.
-
-        return nsmallest(num, data, itemgetter(2))  # data list ??? ?? ?? ?? num(=512?) ?? ??? ???? ??
+        return nsmallest(num, data, itemgetter(2))
 
 class PruningFineTuner:
     def __init__(self, model, dataset = 'moon'):
@@ -428,7 +420,7 @@ if __name__ == "__main__":
 
 
     dataset = 'moon' #dataset: moon, circle, mult
-    method_type = 'lrp' #pruning criteria: lrp, grad, taylor, weight
+    method_type = 'taylor' #pruning criteria: lrp, grad, taylor, weight
 
     if dataset == 'moon' or dataset == 'circle':
         model = Net(num_class=2)
