@@ -1,18 +1,21 @@
+
+from collections import OrderedDict
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.datasets import make_moons, make_circles, make_classification
+from pandas import DataFrame
+
 import torch
 import torch.nn as nn
-from torchvision import models
-from collections import OrderedDict
 import torch.nn.functional as F
 from torch.autograd import Variable
 import torch.optim as optim
-import numpy as np
-from sklearn.datasets import make_moons, make_circles
-from matplotlib import pyplot
-from pandas import DataFrame
-from sklearn.datasets import make_classification
-import matplotlib.pyplot as plt
+from torchvision import models
+
 from modules.lrp import lrp
 from modules.prune import prune_layer_toy
+
 from heapq import nsmallest
 from operator import itemgetter
 
@@ -414,10 +417,15 @@ class PruningFineTuner:
         plt.show()
         fig.savefig('grad.svg', dpi=fig.dpi)
 
+
+
+
 if __name__ == "__main__":
     '''
-    Test with Toy dataset
+    Pruning test with toy dataset
     '''
+
+
 
     dataset = 'moon' #dataset: moon, circle, mult
     method_type = 'lrp' #pruning criteria: lrp, grad, taylor, weight
@@ -435,4 +443,4 @@ if __name__ == "__main__":
     fine_tuner.prune(method_type = method_type)
     fine_tuner.visualize_after(type= 'test')
     fine_tuner.visualize_after(type= 'train')
-    print('Finish')
+    print('Done')
