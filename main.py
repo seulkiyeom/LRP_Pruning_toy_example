@@ -21,6 +21,7 @@ def fhook(self, input, output):
     self.input = input[0]
     self.output = output.data
 
+
 class Net(nn.Module):
     def __init__(self, num_units=1000, num_class = 2):
         super(Net, self).__init__()
@@ -39,7 +40,9 @@ class Net(nn.Module):
         X = self.network(X)
         return X
 
-class FilterPrunner:
+
+
+class FilterPruner:
     def __init__(self, model):
         self.model = model
         self.reset()
@@ -176,11 +179,11 @@ class FilterPrunner:
                         v = torch.abs(self.filter_ranks[i])
                         self.filter_ranks[i] = v.cpu()
 
-    def get_prunning_plan(self, num_filters_to_prune):
+    def get_pruning_plan(self, num_filters_to_prune):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
         # filters_to_prune: filters to be pruned 1) layer number, 2) filter number, 3) its value
 
-        # After each of the k filters are prunned,
+        # After each of the k filters are pruned,
         # the filter index of the next filters change since the model is smaller.
         filters_to_prune_per_layer = {}
         for (l, f, _) in filters_to_prune:
@@ -239,39 +242,41 @@ class PruningFineTuner:
         # self.train()
         # torch.save(self.model.state_dict(), 'model/' + 'model_' + str(self.dataset))
         self.model.load_state_dict(torch.load('model/' + 'model_' + str(self.dataset), map_location='gpu' if torch.cuda.is_available() else 'cpu'))
-        self.prunner = FilterPrunner(self.model)
+        self.pruner = FilterPruner(self.model)
+
 
 
     def get_total_number_of_filters(self):
         # counts the total number of non-output dense layer filters in the network
         dense_filters = 0
         for name, module in self.model.network._modules.items():
-            if isinstance(module, torch.nn.modules.linear.Linear)
-                and not name in ['output', '6']:
+            if isinstance(module, torch.nn.modules.linear.Linear) \
+                    and not name in ['output', '6']:
                 dense_filters += module.out_features
         return dense_filters
 
 
+
     def get_candidates_to_prune(self, num_filters_to_prune, method_type = 'lrp'):
-        self.prunner.reset(method_type)
+        self.pruner.reset(method_type)
 
         if method_type == 'lrp':
-            output = self.prunner.forward_lrp(self.X)
+            output = self.pruner.forward_lrp(self.X)
 
             T = torch.zeros_like(output)
             for ii in range(self.y.size(0)):  # each data (= 20)
                 T[ii, self.y[ii]] = 1.0
 
-            self.prunner.backward_lrp(output * T)
+            self.pruner.backward_lrp(output * T)
 
         else:
-            output = self.prunner.forward(self.X)
+            output = self.pruner.forward(self.X)
             loss = self.criterion(output, self.y)
             loss.backward()
 
-        self.prunner.normalize_ranks_per_layer()
+        self.pruner.normalize_ranks_per_layer()
 
-        return self.prunner.get_prunning_plan(num_filters_to_prune)
+        return self.pruner.get_pruning_plan(num_filters_to_prune)
 
     def train(self):
         optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
@@ -299,14 +304,14 @@ class PruningFineTuner:
         filters_to_prune_per_iteration = 1000 #the number of pruned filter
         prune_targets = self.get_candidates_to_prune(filters_to_prune_per_iteration, method_type)
 
-        layers_prunned = {}
+        layers_pruned = {}
         for layer_index, filter_index in prune_targets:
-            if layer_index not in layers_prunned:
-                layers_prunned[layer_index] = 0
-            layers_prunned[layer_index] += 1
+            if layer_index not in layers_pruned:
+                layers_pruned[layer_index] = 0
+            layers_pruned[layer_index] += 1
 
-        print("Dense layers that will be prunned", layers_prunned)  # ? ?? layer ? filter ?
-        print("Prunning filters.. ")
+        print("Dense layers that will be pruned", layers_pruned)  # ? ?? layer ? filter ?
+        print("Pruning filters.. ")
         model = self.model.cpu()
         for layer_index, filter_index in prune_targets:  # ??? ??? ??? ??
             # print("Layer index: {}, Filter index: {}".format(layer_index, filter_index))
