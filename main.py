@@ -401,28 +401,44 @@ class PruningFineTuner:
 
         # Pass data to predict method
         db_prob = self.model(data_t)
+        num_classes = db_prob.shape[1]
 
-        clf = np.where(db_prob < 0.5, 0, 1)
+        # is this the discretization of the classification? can not work for more than 2 classes, and even then it is wrong.
+        #clf = np.where(db_prob < 0.5, 0, 1)
+        clf2 = db_prob.data.max(1, keepdim=True)[1]
+        clf = np.argmax(db_prob.detach().numpy(), axis=1)
+        Z = clf.reshape(XX.shape)
 
-        Z = clf[:,0].reshape(XX.shape)
+        #new dots fxns
+        X = X.cpu().numpy()
+        y = pred.cpu().numpy().squeeze()
+
+        #Z = clf[:,0].reshape(XX.shape)
 
         # scatter plot, dots colored by class value
-        df = DataFrame(dict(x=X[:, 0].cpu().numpy().squeeze(), y=X[:, 1].cpu().numpy().squeeze(), label=pred.cpu().numpy().squeeze()))
+        #df = DataFrame(dict(x=X[:, 0].cpu().numpy().squeeze(), y=X[:, 1].cpu().numpy().squeeze(), label=pred.cpu().numpy().squeeze()))
         # colors = {0: 'red', 1: 'blue'}
-        colors = {0: 'red', 1: 'blue', 2: 'green', 3: 'black'}
+        #colors = {0: 'red', 1: 'blue', 2: 'green', 3: 'black'}
+        cmap = plt.cm.Accent
         fig, ax = plt.subplots()
-        grouped = df.groupby('label')
-        for key, group in grouped:
-            # print(key)
-            group.plot(ax=ax, kind='scatter', x='x', y='y', label=key, color=colors[key])
 
-        plt.contourf(XX, YY, Z, cmap=plt.cm.Accent, alpha=0.5)
+        #TODO build fixed four-class colormap for stuff.
+        print(np.unique(Z))
+        plt.contourf(XX, YY, Z, alpha=.5, cmap=cmap, vmin=0, vmax=num_classes-1) #colors=[c for c in colors.values()][:num_classes]) #, levels=range(num_classes), colors=[x for x in colors.values()][:num_classes], alpha=0.5)
+        plt.scatter(x=X[:,0], y=X[:,1], c=y, cmap=cmap, vmin=0, vmax=num_classes-1) #colors=[c for c in colors.values()][:num_classes])
+
+            #cmap=plt.cm.tab10, alpha=1)
+        #grouped = df.groupby('label')
+        #for key, group in grouped:
+        #    # print(key)
+        #    group.plot(ax=ax, kind='scatter', x='x', y='y', label=key, color=colors[key])
+
         # TODO remove hard coding of canvas limits
         plt.xlim(-1.4154078960418701, 2.3496716022491455) #moon
         plt.ylim(-0.8391216397285461, 1.4337007403373718) #moon
         # plt.xlim(-1.3220499753952026, 1.3229042291641235) #circle
-        # plt.ylim(-1.3928583860397339, 1.305529236793518) #circle
-        plt.title('Pre-pruning {} accurarcy = {}%'.format(scenario, acc))
+        # plt.ylim(-1.3928583860397339, 1.305529236793518) #circle #TODO remove hardcoding nonsense
+        plt.title('Post-pruning {} accurarcy = {}%'.format(scenario, acc))
         plt.show()
         # TODO remove hardoding of output file name
         fig.savefig('grad.svg', dpi=fig.dpi)
@@ -441,7 +457,7 @@ if __name__ == "__main__":
 
 
     parser = argparse.ArgumentParser(description = 'Neural Network Pruning Toy experiment')
-    parser.add_argument('--dataset',    '-d', type=str, default='moon',         help='The toy dataset to use. Choices: {}'.format(', '.join(valid_datasets)))
+    parser.add_argument('--dataset',    '-d', type=str, default='mult',         help='The toy dataset to use. Choices: {}'.format(', '.join(valid_datasets)))
     parser.add_argument('--criterion',  '-c', type=str, default='lrp',          help='The criterion to use for pruning. Choices: {}'.format(', '.join(valid_criteria)))
     parser.add_argument('--numsamples', '-n', type=int, default=5,              help='Number of training samples to use for computing the pruning criterion.')
     parser.add_argument('--seed',       '-s', type=int, default=1,              help='Random seed used for (random) sample selection for pruning criterion computation.')
@@ -449,16 +465,19 @@ if __name__ == "__main__":
     parser.add_argument('--logfile',    '-l', type=str, default='./log.txt',    help='Output log file location. Results will pe appended. File location must exist!')
     args = parser.parse_args()
 
+    #TODO fix number of classes rendered/used in mult visualization
     #TODO use rendermode
     #TODO use numsamples
     #TODO use seed
     #TODO use logfile. results must be well-formated, in one line each, e.g. as a json dict with all the stuff
+    #TODO make datasets part of PruningFineTuner, e.g. during __init__ load the prepared training data and based on the random seed select data for pruning
+    #TODO let PruningFineTuner take care of the result logging. use json to dump easily parsable dicts
 
     # verify parametrer choices
     assert args.dataset     in valid_datasets,      'Invalid dataset choice "{}". Must be from {}'.format(args.dataset, valid_datasets)
     assert args.criterion   in valid_criteria,      'Invalid pruning criterion "{}". Must be from {}'.format(args.criterion, valid_criteria)
-    assert args.numsamples  > 0,                    'Number of samples for pruning criterion computation must be > 0, but was {}'.format(args.num_samples)
-    assert args.render_mode in valid_rendermodes,   'Invalid render mode "{}". Must be from {}'.format(args.render_mode, valid_rendermodes)
+    assert args.numsamples  > 0,                    'Number of samples (per class) used for pruning criterion computation must be > 0, but was {}'.format(args.num_samples)
+    assert args.rendermode  in valid_rendermodes,   'Invalid render mode "{}". Must be from {}'.format(args.rendermode, valid_rendermodes)
 
     logdir = os.path.dirname(args.logfile)
     assert os.path.isdir(logdir),                   'Log file location "{}". does not exist. Will not be able to create log file!'.format(logdir)
