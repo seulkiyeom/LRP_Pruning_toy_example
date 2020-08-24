@@ -469,7 +469,7 @@ if __name__ == "__main__":
         if not os.path.isdir('scripts'):
             os.mkdir('scripts')
 
-        rendermode = 'svg'
+        rendermode = 'none'
         colormap = 'Set1'
         logfile = './output/log.txt'
 
