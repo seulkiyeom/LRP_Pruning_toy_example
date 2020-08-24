@@ -251,13 +251,21 @@ class PruningFineTuner:
         elif self.dataset == 'circle':
             X_test, y_test_true = make_circles(n_samples=n_samples, noise=0.1, factor=0.3, random_state=self.random_seed)
         elif self.dataset == 'mult':
-            # this is NOT the function used previously
-            #X_test, y_test_true = make_classification(n_samples=n_samples, n_features=2, n_informative=2, n_repeated=0, n_redundant=0, random_state=self.random_seed)
-            print("WARNING! This is a pre-recorded dataset since no-one bothered actually creating a documentation. it only works for 5 samples per class.")
-            assert self.n_samples == 5*4, "Pre-recorded dataset not fit for {} != 20=5*4 samples (i.e. NOT 5 samples per class)"
-            # load previously used test data used for training the loaded model
-            X_test = np.load('data/mult_test_X.npy')
-            y_test_true = np.load('data/mult_test_y.npy')
+            np.random.seed(self.random_seed)
+            D = 2  # dimensionality
+            K = 4  # number of classes
+            N = int(n_samples/K) #samples per class
+            X = np.zeros((N * K, D))  # data matrix (each row = single example)
+            y = np.zeros(N * K, dtype='uint8')  # class labels
+            for j in range(K):
+                 ix = range(N * j, N * (j + 1))
+                 r = np.linspace(0.0, 1, N)  # radius
+                 t = np.linspace(j * 4, (j + 1) * 4, N) + np.random.randn(N) * 0.2  # theta
+                 X[ix] = np.c_[r * np.sin(t), r * np.cos(t)]
+                 y[ix] = j
+
+            X_test = X
+            y_test_true = y
         else:
             raise ValueError('Unsupported Dataset name "{}"'.format(self.dataset))
 
