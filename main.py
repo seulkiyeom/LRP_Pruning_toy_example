@@ -454,6 +454,40 @@ if __name__ == "__main__":
     valid_rendermodes   = ['none', 'svg', 'show']   # no visualizion, only svg output, svg+on-screen figure
     num_classes         = {'moon':2, 'circle':2, 'mult':4}
 
+    def generate_calls():
+        print('Generating parametres and shell scripts for the experiment.')
+        print('One shell script per dataset x criterion combination')
+
+        if not os.path.isdir('scripts'):
+            os.mkdir('scripts')
+
+        rendermode = 'none'
+        colormap = 'Set1'
+        logfile = '/output/log.txt'
+
+        for data in valid_datasets:
+            for criterion in valid_criteria:
+                scriptfile = 'scripts/{}-{}.sh'.format(data, criterion)
+                print('Generating {} ...'.format(scriptfile))
+                with open(scriptfile, 'wt') as f:
+                    f.write('#!/bin/bash\n')
+                    for n in [1, 5, 10, 20, 50, 100, 200]:  # --num_samples
+                        for s in range(20):                 # --seed , different repetitions of the same experiment
+                            cmd = ['python',
+                                   'main.py',
+                                   '--rendermode {}'.format(rendermode),
+                                   '--colormap {}'.format(colormap),
+                                   '--logfile {}'.format(logfile),
+                                   '--dataset {}'.format(data),
+                                   '--criterion {}'.format(criterion),
+                                   '--numsamples {}'.format(n),
+                                   '--seed {}'.format(s)]
+                            f.write(' '.join(cmd) + '\n')
+
+        print('Done generating experiment scripts.')
+
+
+
 
     parser = argparse.ArgumentParser(description = 'Neural Network Pruning Toy experiment')
     parser.add_argument('--dataset',    '-d',   type=str, default='mult',         help='The toy dataset to use. Choices: {}'.format(', '.join(valid_datasets)))
@@ -462,8 +496,15 @@ if __name__ == "__main__":
     parser.add_argument('--seed',       '-s',   type=int, default=1,              help='Random seed used for (random) sample selection for pruning criterion computation.')
     parser.add_argument('--rendermode', '-r',   type=str, default='none',         help='Is result visualization desired? Choices: {}'.format(', '.join(valid_rendermodes)))
     parser.add_argument('--colormap',   '-cm',  type=str, default='Dark2',        help='The colormap to use for rendering the output figures. Must be a valid one from matplotlib.')
-    parser.add_argument('--logfile',    '-l', type=str, default='./log.txt',    help='Output log file location. Results will pe appended. File location must exist!')
+    parser.add_argument('--logfile',    '-l',   type=str, default='./log.txt',    help='Output log file location. Results will pe appended. File location (folder) must exist!!!')
+    parser.add_argument('--generate',   '-g',   action='store_true',              help='Calls a function to generate a bunch of parameterized function calls. Recommendation. First call this tool with "-g", then execute the generated scripts.')
     args = parser.parse_args()
+
+
+    # catch the "generate calls" functionality
+    if args.generate:
+        generate_calls()
+        exit()
 
 
     # verify parametrer choices
