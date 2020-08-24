@@ -152,7 +152,7 @@ class FilterPruner:
 
             if self.pruning_criterion == 'lrp':  # average over trials - LRP case (this is not normalization !!)
                 v = self.filter_ranks[i]
-                v /= torch.sum(v)  # torch.sum(v) = total number of dataset
+                v /= torch.sum(v)  # torch.sum(v) = total number of data
                 self.filter_ranks[i] = v.cpu()
             else:
                 if norm:  # L2-norm for global rescaling
@@ -306,14 +306,6 @@ class PruningFineTuner:
             optimizer.step()
             # print('Train Epoch: {}, Loss: {}'.format(i_epoch, loss.item()))
 
-    def test(self):
-        self.model.eval()
-        output = self.model(self.X)
-        pred = output.data.max(1, keepdim=True)[1]
-        correct = pred.eq(self.y.data.view_as(pred)).cpu().sum()
-        print('Test Accuracy on "{}": {}'.format(self.dataset, (float(correct/len(self.y)) * 100)))
-
-
     def prune(self):
         number_of_dense = self.get_total_number_of_filters()
         filters_to_prune_per_iteration = 1000 #the number of pruned filter
@@ -324,6 +316,7 @@ class PruningFineTuner:
             if layer_index not in layers_pruned:
                 layers_pruned[layer_index] = 0
             layers_pruned[layer_index] += 1
+
 
         print("# of dense layer filters per layer selected for pruning:", layers_pruned)
         print("Pruning filters.. ")
@@ -403,7 +396,7 @@ class PruningFineTuner:
             factor = 0.80
             cmap_scatter.colors *= np.array([[factor]*3 + [1]])
             fig, ax = plt.subplots()
-            print(y.shape, y_true.shape)
+
             plt.contourf(XX, YY, Z, alpha=.75, cmap=cmap_contourf)
             plt.scatter(x=X[:,0], y=X[:,1], c=y_true, cmap=cmap_scatter)
 
