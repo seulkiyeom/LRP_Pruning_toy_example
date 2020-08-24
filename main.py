@@ -228,8 +228,11 @@ class PruningFineTuner:
         self.color_map          = color_map
         self.log_file           = log_file
         self.log_dir            = os.path.dirname(log_file)
+        self.log_file = open(self.log_file, 'ta')
         self.experiment_name    = 'dataset:{}-criterion:{}-n:{}-s:{}'.format(self.dataset, self.pruning_criterion, self.n_samples, self.random_seed)
         self.pruning_stage      = 'pre'
+
+
 
 
         # init random seed for everything coming.
@@ -335,6 +338,8 @@ class PruningFineTuner:
         self.pruning_stage = 'post'
 
     def evaluate_and_visualize(self, scenario = 'train'):
+
+        eval_name = '{}-scenario:{}-stage:{}'.format(self.experiment_name, scenario, self.pruning_stage)
         # scatter plot, dots colored by class value
         # TODO LOAD SEED-GENERATED DATASET. OR PASS AS PARAMETERS
         X = np.load('data/' + self.dataset + '_' + scenario + '_X.npy')
@@ -355,6 +360,7 @@ class PruningFineTuner:
         correct = pred.eq(y_true.data.view_as(pred)).cpu().sum()
         acc = float(correct)/float(len(X)) * 100
         print('{}-pruning {} accuracy = {}%'.format(self.pruning_stage, scenario, acc))
+        self.log_file.write('{} {}\n'.format(eval_name, acc))
 
         if self.render in ['svg', 'show']:
             # create necessary data for visualizing data and decision boundaries.
@@ -404,13 +410,19 @@ class PruningFineTuner:
             plt.ylim(y_min, y_max-spacing)
             plt.title('{}-pruning {} accurarcy with {} = {:.2f}%'.format(self.pruning_stage, scenario, self.pruning_criterion, acc))
 
-            figname = '{}-scenario:{}-stage:{}.svg'.format(self.experiment_name, scenario, self.pruning_stage)
+            figname = '{}/{}.svg'.format(self.log_dir, eval_name)
             print('Saving figure to "{}"'.format(figname))
             fig.savefig(figname, dpi=fig.dpi)
 
             if self.render == 'show':
                 plt.show()
 
+
+    def close(self):
+        try:
+            self.log_file.close()
+        except:
+            pass
 
 
 
@@ -436,9 +448,7 @@ if __name__ == "__main__":
 
     #TODO use numsamples
     #TODO use seed
-    #TODO use logfile. results must be well-formated, in one line each, e.g. as a json dict with all the stuff
     #TODO make datasets part of PruningFineTuner, e.g. during __init__ load the prepared training data and based on the random seed select data for pruning
-    #TODO let PruningFineTuner take care of the result logging. use json to dump easily parsable dicts
 
     # verify parametrer choices
     assert args.dataset     in valid_datasets,      'Invalid dataset choice "{}". Must be from {}'.format(args.dataset, valid_datasets)
@@ -448,12 +458,11 @@ if __name__ == "__main__":
     assert args.colormap in plt.colormaps(),        'Invalid colormap choice "{}". Must be from matplotlib.pyplot.colormaps(), i.e. {}'.format(args.colormap, plt.colormaps())
 
     logdir = os.path.dirname(args.logfile)
-    assert os.path.isdir(logdir),                   'Log file location "{}". does not exist. Will not be able to create log file!'.format(logdir)
+    assert os.path.isdir(logdir),                   'Log file location "{}" does not exist. Will not be able to create log file and/or figures! Make sure your target folder exists (to avoid spam)'.format(logdir)
 
     model = Net(num_class=num_classes[args.dataset])
     if torch.cuda.is_available(): model = model.cuda()
 
-    # TODO. logging. in PruningFineTuner
     fine_tuner = PruningFineTuner(model,
                                   dataset=args.dataset,
                                   criterion=args.criterion,
@@ -468,5 +477,7 @@ if __name__ == "__main__":
     fine_tuner.prune()
     fine_tuner.evaluate_and_visualize(scenario='train')
     fine_tuner.evaluate_and_visualize(scenario='test')
+    fine_tuner.close()
+
     print('Done for {}'.format(fine_tuner.experiment_name))
 
