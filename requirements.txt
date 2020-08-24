@@ -1,0 +1,5 @@
+numpy
+matplotlib
+scikit-learn
+pandas
+torch
