@@ -334,7 +334,7 @@ class PruningFineTuner:
         # change pruning state (important for figure output)
         self.pruning_stage = 'post'
 
-    def visualize(self, scenario = 'train'):
+    def evaluate_and_visualize(self, scenario = 'train'):
         # scatter plot, dots colored by class value
         # TODO LOAD SEED-GENERATED DATASET. OR PASS AS PARAMETERS
         X = np.load('data/' + self.dataset + '_' + scenario + '_X.npy')
@@ -463,10 +463,10 @@ if __name__ == "__main__":
                                   color_map=args.colormap,
                                   log_file=args.logfile)
 
-    fine_tuner.visualize(scenario='train')
-    fine_tuner.visualize(scenario='test')
+    fine_tuner.evaluate_and_visualize(scenario='train')
+    fine_tuner.evaluate_and_visualize(scenario='test')
     fine_tuner.prune()
-    fine_tuner.visualize(scenario='train')
-    fine_tuner.visualize(scenario='test')
+    fine_tuner.evaluate_and_visualize(scenario='train')
+    fine_tuner.evaluate_and_visualize(scenario='test')
     print('Done for {}'.format(fine_tuner.experiment_name))
 
