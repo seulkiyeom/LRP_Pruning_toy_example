@@ -228,38 +228,60 @@ class PruningFineTuner:
         self.color_map          = color_map
         self.log_file           = log_file
         self.log_dir            = os.path.dirname(log_file)
-        self.log_file = open(self.log_file, 'ta')
+        self.log_file           = open(self.log_file, 'ta')
         self.experiment_name    = 'dataset:{}-criterion:{}-n:{}-s:{}'.format(self.dataset, self.pruning_criterion, self.n_samples, self.random_seed)
-        self.pruning_stage      = 'pre'
+        self.pruning_stage      = 'pre' # will be set to 'post' after pruning
 
 
 
 
         # init random seed for everything coming.
         torch.manual_seed(self.random_seed)
-
-
         # TODO generate data based on seed on the fly, instead of loading it.
         ## generate 2d classification dataset
-        # X, y = make_moons(n_samples=2000, noise=0.1)
-        # X, y = make_circles(n_samples=10, noise=0.1, factor=0.3, random_state=0)
-        # X = X.astype(np.float32)
-        # y = y.astype(np.int64)
-        # np.save('test_X', X)
-        # np.save('test_y', y)
+        #
 
-        #numpy
-        X = np.load('data/' + str(self.dataset) + '_test_X.npy')
-        y = np.load('data/' + str(self.dataset) + '_test_y.npy')
+        # load data used for training the loaded model
+        X_train = np.load('data/' + str(self.dataset) + '_train_X.npy')
+        y_train_true = np.load('data/' + str(self.dataset) + '_train_y.npy')
+
+        # ad-hoc generate test data instead, using the previously set random seed
+        if self.dataset == 'moon':
+            X_test, y_test_true = make_moons(n_samples=n_samples, noise=0.1, random_state=self.random_seed)
+        elif self.dataset == 'circle':
+            X_test, y_test_true = make_circles(n_samples=n_samples, noise=0.1, factor=0.3, random_state=self.random_seed)
+        elif self.dataset == 'mult':
+            # this is NOT the function used previously
+            #X_test, y_test_true = make_classification(n_samples=n_samples, n_features=2, n_informative=2, n_repeated=0, n_redundant=0, random_state=self.random_seed)
+            print("WARNING! This is a pre-recorded dataset since no-one bothered actually creating a documentation. it only works for 5 samples per class.")
+            assert self.n_samples == 5*4, "Pre-recorded dataset not fit for {} != 20=5*4 samples (i.e. NOT 5 samples per class)"
+            # load previously used test data used for training the loaded model
+            X_test = np.load('data/mult_test_X.npy')
+            y_test_true = np.load('data/mult_test_y.npy')
+        else:
+            raise ValueError('Unsupported Dataset name "{}"'.format(self.dataset))
+
+        X_train         = X_train.astype(np.float32)
+        y_train_true    = y_train_true.astype(np.int64)
+        X_test          = X_test.astype(np.float32)
+        y_test_true     = y_test_true.astype(np.int64)
 
         #to torch
-        X = torch.from_numpy(X)
-        y = torch.from_numpy(y)
+        X_train         = torch.from_numpy(X_train)
+        y_train_true    = torch.from_numpy(y_train_true)
+        X_test          = torch.from_numpy(X_test)
+        y_test_true     = torch.from_numpy(y_test_true)
         if torch.cuda.is_available():
-            X = X.cuda()
-            y = y.cuda()
+            X_test          = X_test.cuda()
+            y_test_true     = y_test_true.cuda()
+            X_train         = X_train.cuda()
+            y_train_true    = y_train_true.cuda()
 
-        self.X, self.y = Variable(X), Variable(y)
+        self.X_test = Variable(X_test)
+        self.y_test_true = Variable(y_test_true)
+        self.X_train = Variable(X_train)
+        self.y_train_true = Variable(y_train_true)
+
         self.model = model
         self.criterion = nn.CrossEntropyLoss()
 
@@ -282,16 +304,16 @@ class PruningFineTuner:
         self.pruner.reset(self.pruning_criterion)
 
         if self.pruning_criterion == 'lrp':
-            output = self.pruner.forward_lrp(self.X)
+            output = self.pruner.forward_lrp(self.X_test)
 
             T = torch.zeros_like(output)
-            for ii in range(self.y.size(0)):
-                T[ii, self.y[ii]] = 1.0
+            for ii in range(self.y_test_true.size(0)):
+                T[ii, self.y_test_true[ii]] = 1.0
             self.pruner.backward_lrp(output * T)
 
         else:
-            output = self.pruner.forward(self.X)
-            loss = self.criterion(output, self.y)
+            output = self.pruner.forward(self.X_test)
+            loss = self.criterion(output, self.y_test_true)
             loss.backward()
 
         self.pruner.normalize_ranks_per_layer()
@@ -303,8 +325,8 @@ class PruningFineTuner:
         self.model.train()
         for i_epoch in range(10000):
             self.model.zero_grad()
-            output = self.model(self.X)
-            loss = self.criterion(output, self.y)
+            output = self.model(self.X_test)
+            loss = self.criterion(output, self.y_test_true)
             loss.backward()
             optimizer.step()
             # print('Train Epoch: {}, Loss: {}'.format(i_epoch, loss.item()))
@@ -340,21 +362,18 @@ class PruningFineTuner:
     def evaluate_and_visualize(self, scenario = 'train'):
 
         eval_name = '{}-scenario:{}-stage:{}'.format(self.experiment_name, scenario, self.pruning_stage)
-        # scatter plot, dots colored by class value
-        # TODO LOAD SEED-GENERATED DATASET. OR PASS AS PARAMETERS
-        X = np.load('data/' + self.dataset + '_' + scenario + '_X.npy')
-        y_true = np.load('data/' + self.dataset + '_' + scenario + '_y.npy')
 
-        #to torch
-        X = torch.from_numpy(X)
-        y_true = torch.from_numpy(y_true)
-        if torch.cuda.is_available():
-            X = X.cuda()
-            y_true = y_true.cuda()
+        if scenario == 'train':
+            X       = self.X_train
+            y_true  =  self.y_train_true
+        elif scenario == 'test':
+            X       = self.X_test
+            y_true  = self.y_test_true
+        else:
+            raise ValueError('Unsupported scenario "{}" in {}.evaluate_and_visualize'.format(scenario, self.__class__.__name__))
 
-        self.X, self.y_true = Variable(X), Variable(y_true)
+        # set model to eval mode, then eval.
         self.model.eval()
-
         output = self.model(X)
         pred = output.data.max(1, keepdim=True)[1]
         correct = pred.eq(y_true.data.view_as(pred)).cpu().sum()
@@ -446,9 +465,6 @@ if __name__ == "__main__":
     parser.add_argument('--logfile',    '-l', type=str, default='./log.txt',    help='Output log file location. Results will pe appended. File location must exist!')
     args = parser.parse_args()
 
-    #TODO use numsamples
-    #TODO use seed
-    #TODO make datasets part of PruningFineTuner, e.g. during __init__ load the prepared training data and based on the random seed select data for pruning
 
     # verify parametrer choices
     assert args.dataset     in valid_datasets,      'Invalid dataset choice "{}". Must be from {}'.format(args.dataset, valid_datasets)
@@ -466,7 +482,7 @@ if __name__ == "__main__":
     fine_tuner = PruningFineTuner(model,
                                   dataset=args.dataset,
                                   criterion=args.criterion,
-                                  n_samples=args.numsamples,
+                                  n_samples=args.numsamples*num_classes[args.dataset], # adjust sample size to number of classes
                                   random_seed=args.seed,
                                   render=args.rendermode,
                                   color_map=args.colormap,
