@@ -471,7 +471,7 @@ if __name__ == "__main__":
 
         rendermode = 'none'
         colormap = 'Set1'
-        logfile = '/output/log.txt'
+        logfile = './output/log.txt'
 
         for data in valid_datasets:
             for criterion in valid_criteria:
@@ -479,6 +479,7 @@ if __name__ == "__main__":
                 print('Generating {} ...'.format(scriptfile))
                 with open(scriptfile, 'wt') as f:
                     f.write('#!/bin/bash\n')
+                    f.write('cd ..')
                     for n in [1, 5, 10, 20, 50, 100, 200]:  # --num_samples
                         for s in range(50):                 # --seed , different repetitions of the same experiment
                             cmd = ['python',
@@ -523,7 +524,7 @@ if __name__ == "__main__":
     assert args.colormap in plt.colormaps(),        'Invalid colormap choice "{}". Must be from matplotlib.pyplot.colormaps(), i.e. {}'.format(args.colormap, plt.colormaps())
 
     logdir = os.path.dirname(args.logfile)
-    assert os.path.isdir(logdir),                   'Log file location "{}" does not exist. Will not be able to create log file and/or figures! Make sure your target folder exists (to avoid spam)'.format(logdir)
+    assert os.path.isdir(logdir),                   'Log file location "{}" does not exist (You are here: "{}"). Will not be able to create log file and/or figures! Make sure your target folder exists (to avoid spam)'.format(logdir, os.getcwd())
 
     model = Net(num_class=num_classes[args.dataset])
     if torch.cuda.is_available(): model = model.cuda()
