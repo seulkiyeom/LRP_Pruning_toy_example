@@ -469,7 +469,7 @@ if __name__ == "__main__":
         if not os.path.isdir('scripts'):
             os.mkdir('scripts')
 
-        rendermode = 'none'
+        rendermode = 'svg'
         colormap = 'Set1'
         logfile = './output/log.txt'
 
@@ -479,7 +479,7 @@ if __name__ == "__main__":
                 print('Generating {} ...'.format(scriptfile))
                 with open(scriptfile, 'wt') as f:
                     f.write('#!/bin/bash\n')
-                    f.write('cd ..')
+                    #f.write('cd ..\n')
                     for n in [1, 5, 10, 20, 50, 100, 200]:  # --num_samples
                         for s in range(50):                 # --seed , different repetitions of the same experiment
                             cmd = ['python',
