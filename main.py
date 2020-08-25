@@ -50,7 +50,6 @@ def fhook(self, input, output):
 
 class FilterPruner:
     def __init__(self, model, pruning_criterion):
-        # TODO: introcude criterion via constructor.
         self.model = model
         self.pruning_criterion = pruning_criterion
         self.reset(self.pruning_criterion)
@@ -237,9 +236,6 @@ class PruningFineTuner:
 
         # init random seed for everything coming.
         torch.manual_seed(self.random_seed)
-        # TODO generate data based on seed on the fly, instead of loading it.
-        ## generate 2d classification dataset
-        #
 
         # load data used for training the loaded model
         X_train = np.load('data/' + str(self.dataset) + '_train_X.npy')
