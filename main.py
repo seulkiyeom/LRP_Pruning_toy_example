@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import argparse
+import itertools
 
 import numpy as np
 import os
@@ -494,6 +495,95 @@ if __name__ == "__main__":
 
 
 
+    def analyze_log(args):
+        # args is a argparse.Namespace object.
+        assert os.path.isfile(args.logfile), 'Error! no log file to analyze at "{}"'.format(args.logfile)
+        logdir = os.path.dirname(args.logfile) # draw figure next to analzed log, ie within this folder
+
+        #some helper fxns
+        def concat_helper(lists): return lists[0] + lists[1] # helper fxn due to the inavailability of unpacking inlist comprehensions
+        def color_per_criterion(crit): return {'lrp':'red','weight':'black', 'grad':'green', 'taylor':'blue'}[crit]
+
+        # read and parse the log.
+        # sample log line:
+        # dataset:circle-criterion:weight-n:2-s:0-scenario:train-stage:pre 100.0
+        with open(args.logfile, 'rt') as f:
+            data = f.read().split('\n')
+            data = [concat_helper([[c.split(':')[-1] for c in w.split('-')] for w in l.split()]) for l in data if len(l)>0]
+
+        # subscriptable array with field indices as below
+        dset, crit, n, seed, scenario, stage, acc = range(7) # field names as indices
+        dset_t, crit_t, n_t, seed_t, scenario_t, stage_t, acc_t = str, str, float, float, str, str, float # "natural" data types per field
+        data = np.array(data)
+
+        # (re)normalize sample count to "per class"
+        data[:,n] = data[:,n].astype(n_t)/(2 + 2*(data[:,dset]=='mult'))
+
+        #now draw some line plots
+        for dset_name in np.unique(data[:,dset]):
+            for scenario_name in ['train', 'test']:
+                fig = plt.figure(figsize=(3.5,3.5))
+                plt.subplots_adjust(left=0.19, right=0.99, top=0.93, bottom=0.13)
+                plt.title('{}, on {} data'.format(dset_name, scenario_name))
+                plt.xlabel('samples used to compute criteria')
+                plt.ylabel('performance after pruning in %')
+
+                current_data = data[(data[:,dset] == dset_name) *(data[:,scenario] == scenario_name)] # get the currently relevant data for "this" line plot
+                x = current_data[:,n].astype(n_t)
+                x_min = x.min()
+                x_max = x.max()
+
+                # draw baseline (original model performance, as average with standard deviation (required for test setting))
+                y_baseline = current_data[current_data[:,stage] == 'pre'][:,acc].astype(acc_t)
+                y_baseline_avg = np.mean(y_baseline)
+                y_baseline_std = np.std(y_baseline)
+                plt.fill_between([x_min, x_max], [y_baseline_avg - y_baseline_std]*2, [min(y_baseline_avg + y_baseline_std,100)]*2, color='black', alpha=0.2)
+                plt.plot([x_min, x_max], [y_baseline_avg]*2, '--', color='black', label='no pruning')
+
+                #draw achual model performance after pruning, m'lady *heavy breathing*
+                for crit_name in np.unique(current_data[:,crit]):
+                    tmp = current_data[(current_data[:,stage] == 'post') * (current_data[:,crit] == crit_name)]
+                    x = tmp[:,n]
+
+                    # compute average values for y per x.
+                    y_avg = np.array([np.mean(tmp[tmp[:,n]==xi,acc].astype(acc_t)) for xi in np.unique(x)])
+                    y_std = np.array([np.std(tmp[tmp[:,n]==xi,acc].astype(acc_t)) for xi in np.unique(x)])
+                    x = np.unique(x).astype(n_t)
+
+                    #sort wrt ascending x
+                    ii = np.argsort(x)
+                    x = x[ii]
+                    y_avg = y_avg[ii]
+                    y_std = y_std[ii]
+
+                    #plot the lines
+                    color = color_per_criterion(crit_name)
+                    plt.fill_between(x, y_avg-y_std, np.minimum(y_avg+y_std,100), color=color, alpha=0.2)
+                    plt.plot(x, y_avg, color=color, label=crit_name)
+                    plt.xticks(x,[int(i) if i in [10,50,100,200] else '' for i in x], ha='right')
+                    plt.gca().xaxis.grid(True)
+                    plt.legend(loc='lower right')
+
+                plt.xlim([x_min, x_max])
+                #save figure
+                figname = '{}/{}-{}.svg'.format(logdir, dset_name, scenario_name)
+                print('Saving result figure to {}'.format(figname))
+                plt.savefig(figname)
+                plt.show()
+                plt.close()
+
+
+
+
+
+
+
+
+    ###############################
+    #   actual "main" part of main.
+    ###############################
+
+
     parser = argparse.ArgumentParser(description = 'Neural Network Pruning Toy experiment')
     parser.add_argument('--dataset',    '-d',   type=str, default='mult',         help='The toy dataset to use. Choices: {}'.format(', '.join(valid_datasets)))
     parser.add_argument('--criterion',  '-c',   type=str, default='lrp',          help='The criterion to use for pruning. Choices: {}'.format(', '.join(valid_criteria)))
@@ -502,7 +592,8 @@ if __name__ == "__main__":
     parser.add_argument('--rendermode', '-r',   type=str, default='none',         help='Is result visualization desired? Choices: {}'.format(', '.join(valid_rendermodes)))
     parser.add_argument('--colormap',   '-cm',  type=str, default='Dark2',        help='The colormap to use for rendering the output figures. Must be a valid one from matplotlib.')
     parser.add_argument('--logfile',    '-l',   type=str, default='./log.txt',    help='Output log file location. Results will pe appended. File location (folder) must exist!!!')
-    parser.add_argument('--generate',   '-g',   action='store_true',              help='Calls a function to generate a bunch of parameterized function calls. Recommendation. First call this tool with "-g", then execute the generated scripts.')
+    parser.add_argument('--generate',   '-g',   action='store_true',              help='Calls a function to generate a bunch of parameterized function calls. Recommendation: First call this tool with "-g", then execute the generated scripts. If --generate is passed, the script will only generate the scripts and then terminate.')
+    parser.add_argument('--analyze',    '-a',   action='store_true',              help='Calls a function to analyze the previously generated log file. If --analyze is passed (but not --generate) the script will analyze the log specified via --logdir and draw some figures.')
     args = parser.parse_args()
 
 
@@ -511,10 +602,12 @@ if __name__ == "__main__":
         generate_calls()
         exit()
 
+    if args.analyze:
+        analyze_log(args)
+        exit()
 
 
-
-    # verify parametrer choices
+    # verify parameter choices
     assert args.dataset     in valid_datasets,      'Invalid dataset choice "{}". Must be from {}'.format(args.dataset, valid_datasets)
     assert args.criterion   in valid_criteria,      'Invalid pruning criterion "{}". Must be from {}'.format(args.criterion, valid_criteria)
     assert args.numsamples  > 0,                    'Number of samples (per class) used for pruning criterion computation must be > 0, but was {}'.format(args.num_samples)
