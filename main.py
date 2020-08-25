@@ -5,7 +5,7 @@ import itertools
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from sklearn.datasets import make_moons, make_circles, make_classification
+from sklearn.datasets import make_moons, make_circles
 from pandas import DataFrame
 
 import torch
