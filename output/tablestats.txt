@@ -1,0 +1,246 @@
+dataset=circle, stage=pre, no pruning, n=1.0 : train acc = 100.00
+dataset=circle, stage=pre, no pruning, n=1.0 : train acc = 100.00
+dataset=circle, stage=pre, no pruning, n=1.0 : train acc = 100.00
+dataset=circle, stage=pre, no pruning, n=1.0 : train acc = 100.00
+dataset=circle, stage=pre, no pruning, n=1.0 : train acc = 100.00
+dataset=circle, stage=pre, no pruning, n=1.0 : train acc = 100.00
+dataset=circle, stage=pre, no pruning, n=1.0 : train acc = 100.00
+
+dataset=circle, stage=post, crit=grad, n=1.0 : train acc = 69.21
+dataset=circle, stage=post, crit=grad, n=5.0 : train acc = 82.23
+dataset=circle, stage=post, crit=grad, n=10.0 : train acc = 83.89
+dataset=circle, stage=post, crit=grad, n=20.0 : train acc = 85.36
+dataset=circle, stage=post, crit=grad, n=50.0 : train acc = 85.90
+dataset=circle, stage=post, crit=grad, n=100.0 : train acc = 90.88
+dataset=circle, stage=post, crit=grad, n=200.0 : train acc = 92.51
+
+dataset=circle, stage=post, crit=lrp, n=1.0 : train acc = 70.23
+dataset=circle, stage=post, crit=lrp, n=5.0 : train acc = 99.98
+dataset=circle, stage=post, crit=lrp, n=10.0 : train acc = 99.99
+dataset=circle, stage=post, crit=lrp, n=20.0 : train acc = 100.00
+dataset=circle, stage=post, crit=lrp, n=50.0 : train acc = 100.00
+dataset=circle, stage=post, crit=lrp, n=100.0 : train acc = 100.00
+dataset=circle, stage=post, crit=lrp, n=200.0 : train acc = 100.00
+
+dataset=circle, stage=post, crit=taylor, n=1.0 : train acc = 68.35
+dataset=circle, stage=post, crit=taylor, n=5.0 : train acc = 87.18
+dataset=circle, stage=post, crit=taylor, n=10.0 : train acc = 90.47
+dataset=circle, stage=post, crit=taylor, n=20.0 : train acc = 91.87
+dataset=circle, stage=post, crit=taylor, n=50.0 : train acc = 91.94
+dataset=circle, stage=post, crit=taylor, n=100.0 : train acc = 97.04
+dataset=circle, stage=post, crit=taylor, n=200.0 : train acc = 97.42
+
+dataset=circle, stage=post, crit=weight, n=1.0 : train acc = 97.10
+dataset=circle, stage=post, crit=weight, n=5.0 : train acc = 97.10
+dataset=circle, stage=post, crit=weight, n=10.0 : train acc = 97.10
+dataset=circle, stage=post, crit=weight, n=20.0 : train acc = 97.10
+dataset=circle, stage=post, crit=weight, n=50.0 : train acc = 97.10
+dataset=circle, stage=post, crit=weight, n=100.0 : train acc = 97.10
+dataset=circle, stage=post, crit=weight, n=200.0 : train acc = 97.10
+
+Saving result figure to output/circle-train.svg
+dataset=circle, stage=pre, no pruning, n=1.0 : test acc = 100.00
+dataset=circle, stage=pre, no pruning, n=1.0 : test acc = 100.00
+dataset=circle, stage=pre, no pruning, n=1.0 : test acc = 100.00
+dataset=circle, stage=pre, no pruning, n=1.0 : test acc = 99.95
+dataset=circle, stage=pre, no pruning, n=1.0 : test acc = 99.92
+dataset=circle, stage=pre, no pruning, n=1.0 : test acc = 99.93
+dataset=circle, stage=pre, no pruning, n=1.0 : test acc = 99.94
+
+dataset=circle, stage=post, crit=grad, n=1.0 : test acc = 100.00
+dataset=circle, stage=post, crit=grad, n=5.0 : test acc = 83.80
+dataset=circle, stage=post, crit=grad, n=10.0 : test acc = 84.30
+dataset=circle, stage=post, crit=grad, n=20.0 : test acc = 85.40
+dataset=circle, stage=post, crit=grad, n=50.0 : test acc = 86.32
+dataset=circle, stage=post, crit=grad, n=100.0 : test acc = 91.00
+dataset=circle, stage=post, crit=grad, n=200.0 : test acc = 92.59
+
+dataset=circle, stage=post, crit=lrp, n=1.0 : test acc = 100.00
+dataset=circle, stage=post, crit=lrp, n=5.0 : test acc = 99.80
+dataset=circle, stage=post, crit=lrp, n=10.0 : test acc = 99.90
+dataset=circle, stage=post, crit=lrp, n=20.0 : test acc = 99.95
+dataset=circle, stage=post, crit=lrp, n=50.0 : test acc = 99.92
+dataset=circle, stage=post, crit=lrp, n=100.0 : test acc = 99.93
+dataset=circle, stage=post, crit=lrp, n=200.0 : test acc = 99.94
+
+dataset=circle, stage=post, crit=taylor, n=1.0 : test acc = 100.00
+dataset=circle, stage=post, crit=taylor, n=5.0 : test acc = 87.80
+dataset=circle, stage=post, crit=taylor, n=10.0 : test acc = 90.70
+dataset=circle, stage=post, crit=taylor, n=20.0 : test acc = 92.25
+dataset=circle, stage=post, crit=taylor, n=50.0 : test acc = 92.42
+dataset=circle, stage=post, crit=taylor, n=100.0 : test acc = 97.13
+dataset=circle, stage=post, crit=taylor, n=200.0 : test acc = 97.44
+
+dataset=circle, stage=post, crit=weight, n=1.0 : test acc = 94.00
+dataset=circle, stage=post, crit=weight, n=5.0 : test acc = 96.40
+dataset=circle, stage=post, crit=weight, n=10.0 : test acc = 97.30
+dataset=circle, stage=post, crit=weight, n=20.0 : test acc = 96.90
+dataset=circle, stage=post, crit=weight, n=50.0 : test acc = 96.66
+dataset=circle, stage=post, crit=weight, n=100.0 : test acc = 96.92
+dataset=circle, stage=post, crit=weight, n=200.0 : test acc = 96.96
+
+Saving result figure to output/circle-test.svg
+dataset=moon, stage=pre, no pruning, n=1.0 : train acc = 99.90
+dataset=moon, stage=pre, no pruning, n=1.0 : train acc = 99.90
+dataset=moon, stage=pre, no pruning, n=1.0 : train acc = 99.90
+dataset=moon, stage=pre, no pruning, n=1.0 : train acc = 99.90
+dataset=moon, stage=pre, no pruning, n=1.0 : train acc = 99.90
+dataset=moon, stage=pre, no pruning, n=1.0 : train acc = 99.90
+dataset=moon, stage=pre, no pruning, n=1.0 : train acc = 99.90
+
+dataset=moon, stage=post, crit=grad, n=1.0 : train acc = 83.07
+dataset=moon, stage=post, crit=grad, n=5.0 : train acc = 86.17
+dataset=moon, stage=post, crit=grad, n=10.0 : train acc = 91.27
+dataset=moon, stage=post, crit=grad, n=20.0 : train acc = 85.87
+dataset=moon, stage=post, crit=grad, n=50.0 : train acc = 90.92
+dataset=moon, stage=post, crit=grad, n=100.0 : train acc = 93.53
+dataset=moon, stage=post, crit=grad, n=200.0 : train acc = 95.11
+
+dataset=moon, stage=post, crit=lrp, n=1.0 : train acc = 85.01
+dataset=moon, stage=post, crit=lrp, n=5.0 : train acc = 99.86
+dataset=moon, stage=post, crit=lrp, n=10.0 : train acc = 99.85
+dataset=moon, stage=post, crit=lrp, n=20.0 : train acc = 99.85
+dataset=moon, stage=post, crit=lrp, n=50.0 : train acc = 99.85
+dataset=moon, stage=post, crit=lrp, n=100.0 : train acc = 99.85
+dataset=moon, stage=post, crit=lrp, n=200.0 : train acc = 99.85
+
+dataset=moon, stage=post, crit=taylor, n=1.0 : train acc = 79.80
+dataset=moon, stage=post, crit=taylor, n=5.0 : train acc = 84.76
+dataset=moon, stage=post, crit=taylor, n=10.0 : train acc = 91.33
+dataset=moon, stage=post, crit=taylor, n=20.0 : train acc = 86.99
+dataset=moon, stage=post, crit=taylor, n=50.0 : train acc = 92.22
+dataset=moon, stage=post, crit=taylor, n=100.0 : train acc = 94.77
+dataset=moon, stage=post, crit=taylor, n=200.0 : train acc = 95.90
+
+dataset=moon, stage=post, crit=weight, n=1.0 : train acc = 99.60
+dataset=moon, stage=post, crit=weight, n=5.0 : train acc = 99.60
+dataset=moon, stage=post, crit=weight, n=10.0 : train acc = 99.60
+dataset=moon, stage=post, crit=weight, n=20.0 : train acc = 99.60
+dataset=moon, stage=post, crit=weight, n=50.0 : train acc = 99.60
+dataset=moon, stage=post, crit=weight, n=100.0 : train acc = 99.60
+dataset=moon, stage=post, crit=weight, n=200.0 : train acc = 99.60
+
+Saving result figure to output/moon-train.svg
+dataset=moon, stage=pre, no pruning, n=1.0 : test acc = 99.00
+dataset=moon, stage=pre, no pruning, n=1.0 : test acc = 99.20
+dataset=moon, stage=pre, no pruning, n=1.0 : test acc = 99.60
+dataset=moon, stage=pre, no pruning, n=1.0 : test acc = 99.65
+dataset=moon, stage=pre, no pruning, n=1.0 : test acc = 99.84
+dataset=moon, stage=pre, no pruning, n=1.0 : test acc = 99.90
+dataset=moon, stage=pre, no pruning, n=1.0 : test acc = 99.87
+
+dataset=moon, stage=post, crit=grad, n=1.0 : test acc = 88.00
+dataset=moon, stage=post, crit=grad, n=5.0 : test acc = 81.20
+dataset=moon, stage=post, crit=grad, n=10.0 : test acc = 90.30
+dataset=moon, stage=post, crit=grad, n=20.0 : test acc = 84.80
+dataset=moon, stage=post, crit=grad, n=50.0 : test acc = 90.52
+dataset=moon, stage=post, crit=grad, n=100.0 : test acc = 93.48
+dataset=moon, stage=post, crit=grad, n=200.0 : test acc = 95.02
+
+dataset=moon, stage=post, crit=lrp, n=1.0 : test acc = 97.00
+dataset=moon, stage=post, crit=lrp, n=5.0 : test acc = 99.20
+dataset=moon, stage=post, crit=lrp, n=10.0 : test acc = 99.60
+dataset=moon, stage=post, crit=lrp, n=20.0 : test acc = 99.60
+dataset=moon, stage=post, crit=lrp, n=50.0 : test acc = 99.74
+dataset=moon, stage=post, crit=lrp, n=100.0 : test acc = 99.87
+dataset=moon, stage=post, crit=lrp, n=200.0 : test acc = 99.83
+
+dataset=moon, stage=post, crit=taylor, n=1.0 : test acc = 96.00
+dataset=moon, stage=post, crit=taylor, n=5.0 : test acc = 81.80
+dataset=moon, stage=post, crit=taylor, n=10.0 : test acc = 90.90
+dataset=moon, stage=post, crit=taylor, n=20.0 : test acc = 86.45
+dataset=moon, stage=post, crit=taylor, n=50.0 : test acc = 92.26
+dataset=moon, stage=post, crit=taylor, n=100.0 : test acc = 94.89
+dataset=moon, stage=post, crit=taylor, n=200.0 : test acc = 95.75
+
+dataset=moon, stage=post, crit=weight, n=1.0 : test acc = 87.00
+dataset=moon, stage=post, crit=weight, n=5.0 : test acc = 98.20
+dataset=moon, stage=post, crit=weight, n=10.0 : test acc = 98.60
+dataset=moon, stage=post, crit=weight, n=20.0 : test acc = 99.00
+dataset=moon, stage=post, crit=weight, n=50.0 : test acc = 99.58
+dataset=moon, stage=post, crit=weight, n=100.0 : test acc = 99.70
+dataset=moon, stage=post, crit=weight, n=200.0 : test acc = 99.72
+
+Saving result figure to output/moon-test.svg
+dataset=mult, stage=pre, no pruning, n=1.0 : train acc = 94.95
+dataset=mult, stage=pre, no pruning, n=1.0 : train acc = 94.95
+dataset=mult, stage=pre, no pruning, n=1.0 : train acc = 94.95
+dataset=mult, stage=pre, no pruning, n=1.0 : train acc = 94.95
+dataset=mult, stage=pre, no pruning, n=1.0 : train acc = 94.95
+dataset=mult, stage=pre, no pruning, n=1.0 : train acc = 94.95
+dataset=mult, stage=pre, no pruning, n=1.0 : train acc = 94.95
+
+dataset=mult, stage=post, crit=grad, n=1.0 : train acc = 34.28
+dataset=mult, stage=post, crit=grad, n=5.0 : train acc = 67.96
+dataset=mult, stage=post, crit=grad, n=10.0 : train acc = 75.16
+dataset=mult, stage=post, crit=grad, n=20.0 : train acc = 77.39
+dataset=mult, stage=post, crit=grad, n=50.0 : train acc = 81.25
+dataset=mult, stage=post, crit=grad, n=100.0 : train acc = 82.68
+dataset=mult, stage=post, crit=grad, n=200.0 : train acc = 81.66
+
+dataset=mult, stage=post, crit=lrp, n=1.0 : train acc = 62.98
+dataset=mult, stage=post, crit=lrp, n=5.0 : train acc = 91.85
+dataset=mult, stage=post, crit=lrp, n=10.0 : train acc = 91.93
+dataset=mult, stage=post, crit=lrp, n=20.0 : train acc = 91.59
+dataset=mult, stage=post, crit=lrp, n=50.0 : train acc = 91.39
+dataset=mult, stage=post, crit=lrp, n=100.0 : train acc = 91.25
+dataset=mult, stage=post, crit=lrp, n=200.0 : train acc = 91.20
+
+dataset=mult, stage=post, crit=taylor, n=1.0 : train acc = 34.28
+dataset=mult, stage=post, crit=taylor, n=5.0 : train acc = 77.34
+dataset=mult, stage=post, crit=taylor, n=10.0 : train acc = 81.58
+dataset=mult, stage=post, crit=taylor, n=20.0 : train acc = 83.21
+dataset=mult, stage=post, crit=taylor, n=50.0 : train acc = 84.90
+dataset=mult, stage=post, crit=taylor, n=100.0 : train acc = 84.76
+dataset=mult, stage=post, crit=taylor, n=200.0 : train acc = 85.07
+
+dataset=mult, stage=post, crit=weight, n=1.0 : train acc = 91.00
+dataset=mult, stage=post, crit=weight, n=5.0 : train acc = 91.00
+dataset=mult, stage=post, crit=weight, n=10.0 : train acc = 91.00
+dataset=mult, stage=post, crit=weight, n=20.0 : train acc = 91.00
+dataset=mult, stage=post, crit=weight, n=50.0 : train acc = 91.00
+dataset=mult, stage=post, crit=weight, n=100.0 : train acc = 91.00
+dataset=mult, stage=post, crit=weight, n=200.0 : train acc = 91.00
+
+Saving result figure to output/mult-train.svg
+dataset=mult, stage=pre, no pruning, n=1.0 : test acc = 25.00
+dataset=mult, stage=pre, no pruning, n=1.0 : test acc = 79.10
+dataset=mult, stage=pre, no pruning, n=1.0 : test acc = 87.65
+dataset=mult, stage=pre, no pruning, n=1.0 : test acc = 91.58
+dataset=mult, stage=pre, no pruning, n=1.0 : test acc = 93.60
+dataset=mult, stage=pre, no pruning, n=1.0 : test acc = 94.50
+dataset=mult, stage=pre, no pruning, n=1.0 : test acc = 94.72
+
+dataset=mult, stage=post, crit=grad, n=1.0 : test acc = 25.00
+dataset=mult, stage=post, crit=grad, n=5.0 : test acc = 53.10
+dataset=mult, stage=post, crit=grad, n=10.0 : test acc = 68.10
+dataset=mult, stage=post, crit=grad, n=20.0 : test acc = 74.40
+dataset=mult, stage=post, crit=grad, n=50.0 : test acc = 80.11
+dataset=mult, stage=post, crit=grad, n=100.0 : test acc = 81.94
+dataset=mult, stage=post, crit=grad, n=200.0 : test acc = 81.64
+
+dataset=mult, stage=post, crit=lrp, n=1.0 : test acc = 25.00
+dataset=mult, stage=post, crit=lrp, n=5.0 : test acc = 76.20
+dataset=mult, stage=post, crit=lrp, n=10.0 : test acc = 85.00
+dataset=mult, stage=post, crit=lrp, n=20.0 : test acc = 88.17
+dataset=mult, stage=post, crit=lrp, n=50.0 : test acc = 90.20
+dataset=mult, stage=post, crit=lrp, n=100.0 : test acc = 90.86
+dataset=mult, stage=post, crit=lrp, n=200.0 : test acc = 90.98
+
+dataset=mult, stage=post, crit=taylor, n=1.0 : test acc = 25.00
+dataset=mult, stage=post, crit=taylor, n=5.0 : test acc = 63.40
+dataset=mult, stage=post, crit=taylor, n=10.0 : test acc = 74.80
+dataset=mult, stage=post, crit=taylor, n=20.0 : test acc = 80.17
+dataset=mult, stage=post, crit=taylor, n=50.0 : test acc = 83.64
+dataset=mult, stage=post, crit=taylor, n=100.0 : test acc = 84.25
+dataset=mult, stage=post, crit=taylor, n=200.0 : test acc = 84.78
+
+dataset=mult, stage=post, crit=weight, n=1.0 : test acc = 25.00
+dataset=mult, stage=post, crit=weight, n=5.0 : test acc = 78.10
+dataset=mult, stage=post, crit=weight, n=10.0 : test acc = 85.95
+dataset=mult, stage=post, crit=weight, n=20.0 : test acc = 88.40
+dataset=mult, stage=post, crit=weight, n=50.0 : test acc = 90.27
+dataset=mult, stage=post, crit=weight, n=100.0 : test acc = 90.90
+dataset=mult, stage=post, crit=weight, n=200.0 : test acc = 90.99
+
+Saving result figure to output/mult-test.svg

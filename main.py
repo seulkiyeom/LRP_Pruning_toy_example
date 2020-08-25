@@ -534,11 +534,28 @@ if __name__ == "__main__":
                 x_max = x.max()
 
                 # draw baseline (original model performance, as average with standard deviation (required for test setting))
-                y_baseline = current_data[current_data[:,stage] == 'pre'][:,acc].astype(acc_t)
-                y_baseline_avg = np.mean(y_baseline)
-                y_baseline_std = np.std(y_baseline)
-                plt.fill_between([x_min, x_max], [y_baseline_avg - y_baseline_std]*2, [min(y_baseline_avg + y_baseline_std,100)]*2, color='black', alpha=0.2)
-                plt.plot([x_min, x_max], [y_baseline_avg]*2, '--', color='black', label='no pruning')
+                #y_baseline = current_data[current_data[:,stage] == 'pre'][:,acc].astype(acc_t)
+                data_baseline = current_data[current_data[:,stage] == 'pre']
+                x_baseline = data_baseline[:,n]
+
+                # compute average values for y per x.
+                y_baseline_avg = np.array([np.mean(data_baseline[data_baseline[:,n]==xi,acc].astype(acc_t)) for xi in np.unique(x_baseline)])
+                y_baseline_std = np.array([np.std(data_baseline[data_baseline[:,n]==xi,acc].astype(acc_t)) for xi in np.unique(x_baseline)])
+                x_baseline = np.unique(x_baseline).astype(n_t)
+
+                #sort wrt ascending x
+                ii = np.argsort(x_baseline)
+                x_baseline = x_baseline[ii]
+                y_baseline_avg = y_baseline_avg[ii]
+                y_baseline_std = y_baseline_std[ii]
+
+                plt.fill_between(x_baseline, y_baseline_avg - y_baseline_std, np.minimum(y_baseline_avg + y_baseline_std,100), color='black', alpha=0.2)
+                plt.plot(x_baseline, y_baseline_avg, '--', color='black', label='no pruning')
+
+                # print out some stats for the table/figure description
+                for i in range(x_baseline.size):
+                    print('dataset={}, stage=pre, no pruning, n={} : {} acc = {:.2f}'.format(dset_name, x[i], scenario_name, y_baseline_avg[i]))
+                print()
 
                 #draw achual model performance after pruning, m'lady *heavy breathing*
                 for crit_name in np.unique(current_data[:,crit]):
@@ -563,6 +580,11 @@ if __name__ == "__main__":
                     plt.xticks(x,[int(i) if i in [10,50,100,200] else '' for i in x], ha='right')
                     plt.gca().xaxis.grid(True)
                     plt.legend(loc='lower right')
+
+                    # print out some stats for the table/figure description
+                    for i in range(x.size):
+                        print('dataset={}, stage=post, crit={}, n={} : {} acc = {:.2f}'.format(dset_name, crit_name, x[i], scenario_name, y_avg[i]))
+                    print()
 
                 plt.xlim([x_min, x_max])
                 #save figure
