@@ -459,8 +459,8 @@ if __name__ == "__main__":
     num_classes         = {'moon':2, 'circle':2, 'mult':4}
 
     def generate_calls():
-        print('Generating parametres and shell scripts for the experiment.')
-        print('One shell script per dataset x criterion combination')
+        print('Generating parameters and shell scripts for the experiment.')
+        print('One shell script per {dataset x criterion} combination, covering all {num_samples x random_seed} variations')
 
         if not os.path.isdir('scripts'):
             os.mkdir('scripts')
@@ -510,6 +510,8 @@ if __name__ == "__main__":
     if args.generate:
         generate_calls()
         exit()
+
+
 
 
     # verify parametrer choices
