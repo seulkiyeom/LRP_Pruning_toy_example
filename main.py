@@ -93,7 +93,8 @@ class FilterPruner:
                 self.filter_ranks[activation_index] += values
                 self.grad_index += 1
 
-            R = lrp(module, R.data, relevance_method, 1)
+            # sanity-checking for alpha=1 lrp
+            R = lrp(module, R.data, lrp_var=relevance_method, param=1)
 
     def forward(self, x):
         in_size = x.size(0)
@@ -468,7 +469,7 @@ if __name__ == "__main__":
 
         rendermode = 'none'
         colormap = 'Set1'
-        logfile = './output/log.txt'
+        logfile = './output-sanity/log.txt'
 
         for data in valid_datasets:
             for criterion in valid_criteria:
