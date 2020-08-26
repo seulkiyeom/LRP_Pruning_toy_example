@@ -76,7 +76,7 @@ class FilterPruner:
                 self.activation_index += 1
         return x
 
-    def backward_lrp(self, R, relevance_method='z'):
+    def backward_lrp(self, R, relevance_method='z+'):
         for name, module in enumerate(self.model.network[::-1]):
             # print('module: {}, R_sum: {}, R_size: {}'.format(module, R.sum(), R.shape))
 

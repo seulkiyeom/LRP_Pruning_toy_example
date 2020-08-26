@@ -53,7 +53,7 @@ def Linear(module, R, lrp_var=None, param=None):
 
         return Rn
 
-    elif lrp_var.lower() == 'z' or lrp_var.lower() == 'epsilon':
+    elif lrp_var.lower() == 'z+':
         V = module.weight.clamp(min=0.0)
 
         Z = torch.nn.functional.linear(module.input, V) + 1e-9
