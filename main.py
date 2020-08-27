@@ -425,7 +425,8 @@ class PruningFineTuner:
             # darker colors for scatter plot
             factor = 0.80
             cmap_scatter.colors *= np.array([[factor]*3 + [1]])
-            fig, ax = plt.subplots()
+            plt.figure(figsize=(3.5, 3.5))
+            plt.subplots_adjust(left=0.19, right=0.99, top=0.93, bottom=0.13)
 
             plt.contourf(XX, YY, Z, alpha=.5, cmap=cmap_contourf)
             plt.scatter(x=X[:,0], y=X[:,1], c=y_true, cmap=cmap_scatter)
@@ -436,7 +437,7 @@ class PruningFineTuner:
 
             figname = '{}/{}.svg'.format(self.log_dir, eval_name)
             print('Saving figure to "{}"'.format(figname))
-            fig.savefig(figname, dpi=fig.dpi)
+            plt.savefig(figname)
 
             if self.render == 'show':
                 plt.show()
