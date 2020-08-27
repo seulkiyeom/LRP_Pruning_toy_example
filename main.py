@@ -388,8 +388,8 @@ class PruningFineTuner:
 
         if self.render in ['svg', 'show']:
             # create necessary data for visualizing data and decision boundaries.
-            x_min, x_max = X[:, 0].min() - 0.1, X[:, 0].max() + 0.1
-            y_min, y_max = X[:, 1].min() - 0.1, X[:, 1].max() + 0.1
+            x_min, x_max = self.X_train[:, 0].min() - 0.1, self.X_train[:, 0].max() + 0.1
+            y_min, y_max = self.X_train[:, 1].min() - 0.1, self.X_train[:, 1].max() + 0.1
 
             # Set grid spacing parameter
             spacing = min(x_max - x_min, y_max - y_min) / 200
@@ -427,7 +427,7 @@ class PruningFineTuner:
             cmap_scatter.colors *= np.array([[factor]*3 + [1]])
             fig, ax = plt.subplots()
 
-            plt.contourf(XX, YY, Z, alpha=.75, cmap=cmap_contourf)
+            plt.contourf(XX, YY, Z, alpha=.5, cmap=cmap_contourf)
             plt.scatter(x=X[:,0], y=X[:,1], c=y_true, cmap=cmap_scatter)
 
             plt.xlim(x_min, x_max-spacing)
