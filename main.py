@@ -528,8 +528,8 @@ if __name__ == "__main__":
             data = [concat_helper([[c.split(':')[-1] for c in w.split('-')] for w in l.split()]) for l in data if len(l)>0]
 
         # subscriptable array with field indices as below
-        dset, crit, n, seed, scenario, stage, acc = range(7) # field names as indices
-        dset_t, crit_t, n_t, seed_t, scenario_t, stage_t, acc_t = str, str, float, float, str, str, float # "natural" data types per field
+        dset, crit, n, seed, scenario, stage, value = range(7) # field names as indices
+        dset_t, crit_t, n_t, seed_t, scenario_t, stage_t, value_t = str, str, float, float, str, str, float # "natural" data types per field
         data = np.array(data)
 
         # (re)normalize sample count to "per class"
@@ -555,8 +555,8 @@ if __name__ == "__main__":
                 x_baseline = data_baseline[:,n]
 
                 # compute average values for y per x.
-                y_baseline_avg = np.array([np.mean(data_baseline[data_baseline[:,n]==xi,acc].astype(acc_t)) for xi in np.unique(x_baseline)])
-                y_baseline_std = np.array([np.std(data_baseline[data_baseline[:,n]==xi,acc].astype(acc_t)) for xi in np.unique(x_baseline)])
+                y_baseline_avg = np.array([np.mean(data_baseline[data_baseline[:,n]==xi,value].astype(value_t)) for xi in np.unique(x_baseline)])
+                y_baseline_std = np.array([np.std(data_baseline[data_baseline[:,n]==xi,value].astype(value_t)) for xi in np.unique(x_baseline)])
                 x_baseline = np.unique(x_baseline).astype(n_t)
 
                 #sort wrt ascending x
@@ -579,8 +579,8 @@ if __name__ == "__main__":
                     x = tmp[:,n]
 
                     # compute average values for y per x.
-                    y_avg = np.array([np.mean(tmp[tmp[:,n]==xi,acc].astype(acc_t)) for xi in np.unique(x)])
-                    y_std = np.array([np.std(tmp[tmp[:,n]==xi,acc].astype(acc_t)) for xi in np.unique(x)])
+                    y_avg = np.array([np.mean(tmp[tmp[:,n]==xi,value].astype(value_t)) for xi in np.unique(x)])
+                    y_std = np.array([np.std(tmp[tmp[:,n]==xi,value].astype(value_t)) for xi in np.unique(x)])
                     x = np.unique(x).astype(n_t)
 
                     #sort wrt ascending x
@@ -641,6 +641,7 @@ if __name__ == "__main__":
         generate_calls(args)
         exit()
 
+    # catch the "analyze logs" functionality
     if args.analyze:
         analyze_log(args)
         exit()
