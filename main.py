@@ -234,6 +234,9 @@ class PruningFineTuner:
         self.experiment_name    = 'dataset:{}-criterion:{}-n:{}-s:{}'.format(self.dataset, self.pruning_criterion, self.n_samples, self.random_seed)
         self.pruning_stage      = 'pre' # will be set to 'post' after pruning
 
+        # announce experimental setup
+        print(self.experiment_name)
+
 
 
 
