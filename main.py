@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import argparse
 import itertools
+import json
 
 import numpy as np
 import os
@@ -346,11 +347,13 @@ class PruningFineTuner:
         if self.rank_analysis:
             # instead of actually pruning, we here are only interested in the candidates and how they are ranked for pruning.
             # we can thus exit right after writing the data.
-            all_targets_with_score_str = '{}'.format([(t[0], t[1], float(t[2].numpy())) for t in all_targets_with_score])
-            all_targets_with_score_str = all_targets_with_score_str.replace(' ','')
+            all_targets_with_score_array = np.array([t[2].numpy() for t in all_targets_with_score ]) # convert to matrix with columns "layer", "neuron", and "score"
+            # compute rank of all network elements wrt score, since they are already unique identified in all_targets_with_score, and ordered via layer first, neuron index second, we are done here.
+            pruning_order = np.argsort(all_targets_with_score_array)
+            pruning_order_str = json.dumps(pruning_order.tolist()).replace(' ','')
 
             eval_name = '{}-scenario:{}-stage:{}'.format(self.experiment_name, 'rankselection', self.pruning_stage)
-            self.log_file.write('{} {}\n'.format(eval_name, all_targets_with_score_str))
+            self.log_file.write('{} {}\n'.format(eval_name, pruning_order_str))
             self.log_file.close() # manually close the file, to flush it (otherwise exit() prevents the writing)
             exit()
 
@@ -536,7 +539,8 @@ if __name__ == "__main__":
         data[:,n] = data[:,n].astype(n_t)/(2 + 2*(data[:,dset]=='mult'))
 
         if args.ranklog:
-            # analyze the rank logs here. TODO.
+            # analyze the logs wrt rank here. TODO.
+            # also analyze the logs wrt set overlap among the first k neurons here. TODO
             print('Pruning rank analysis not implemented yet!')
             # consider using the prettytable package to prepare the results for printing
 
