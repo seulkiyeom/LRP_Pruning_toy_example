@@ -529,86 +529,94 @@ if __name__ == "__main__":
 
         # subscriptable array with field indices as below
         dset, crit, n, seed, scenario, stage, value = range(7) # field names as indices
-        dset_t, crit_t, n_t, seed_t, scenario_t, stage_t, value_t = str, str, float, float, str, str, float # "natural" data types per field
+        dset_t, crit_t, n_t, seed_t, scenario_t, stage_t, value_t = str, str, float, float, str, str, float # "natural" data types per field. final float assumes "accuracy" case.
         data = np.array(data)
 
         # (re)normalize sample count to "per class"
         data[:,n] = data[:,n].astype(n_t)/(2 + 2*(data[:,dset]=='mult'))
 
-        #now draw some line plots
-        for dset_name in np.unique(data[:,dset]):
-            for scenario_name in ['train', 'test']:
-                fig = plt.figure(figsize=(3.5,3.5))
-                plt.subplots_adjust(left=0.19, right=0.99, top=0.93, bottom=0.13)
-                plt.title('{}, on {} data'.format(dset_name, scenario_name))
-                plt.xlabel('samples used to compute criteria')
-                plt.ylabel('performance after pruning in %')
+        if args.ranklog:
+            # analyze the rank logs here. TODO.
+            print('Pruning rank analysis not implemented yet!')
+            # consider using the prettytable package to prepare the results for printing
 
-                current_data = data[(data[:,dset] == dset_name) *(data[:,scenario] == scenario_name)] # get the currently relevant data for "this" line plot
-                x = current_data[:,n].astype(n_t)
-                x_min = x.min()
-                x_max = x.max()
+        else:
+            # analyze accuracy post-pruning wrt n and criterion here
 
-                # draw baseline (original model performance, as average with standard deviation (required for test setting))
-                #y_baseline = current_data[current_data[:,stage] == 'pre'][:,acc].astype(acc_t)
-                data_baseline = current_data[current_data[:,stage] == 'pre']
-                x_baseline = data_baseline[:,n]
+            #now draw some line plots
+            for dset_name in np.unique(data[:,dset]):
+                for scenario_name in ['train', 'test']:
+                    fig = plt.figure(figsize=(3.5,3.5))
+                    plt.subplots_adjust(left=0.19, right=0.99, top=0.93, bottom=0.13)
+                    plt.title('{}, on {} data'.format(dset_name, scenario_name))
+                    plt.xlabel('samples used to compute criteria')
+                    plt.ylabel('performance after pruning in %')
 
-                # compute average values for y per x.
-                y_baseline_avg = np.array([np.mean(data_baseline[data_baseline[:,n]==xi,value].astype(value_t)) for xi in np.unique(x_baseline)])
-                y_baseline_std = np.array([np.std(data_baseline[data_baseline[:,n]==xi,value].astype(value_t)) for xi in np.unique(x_baseline)])
-                x_baseline = np.unique(x_baseline).astype(n_t)
+                    current_data = data[(data[:,dset] == dset_name) *(data[:,scenario] == scenario_name)] # get the currently relevant data for "this" line plot
+                    x = current_data[:,n].astype(n_t)
+                    x_min = x.min()
+                    x_max = x.max()
 
-                #sort wrt ascending x
-                ii = np.argsort(x_baseline)
-                x_baseline = x_baseline[ii]
-                y_baseline_avg = y_baseline_avg[ii]
-                y_baseline_std = y_baseline_std[ii]
-
-                plt.fill_between(x_baseline, y_baseline_avg - y_baseline_std, np.minimum(y_baseline_avg + y_baseline_std,100), color='black', alpha=0.2)
-                plt.plot(x_baseline, y_baseline_avg, '--', color='black', label='no pruning')
-
-                # print out some stats for the table/figure description
-                for i in range(x_baseline.size):
-                    print('dataset={}, stage=pre, no pruning, n={} : {} acc = {:.2f}'.format(dset_name, x[i], scenario_name, y_baseline_avg[i]))
-                print()
-
-                #draw achual model performance after pruning, m'lady *heavy breathing*
-                for crit_name in np.unique(current_data[:,crit]):
-                    tmp = current_data[(current_data[:,stage] == 'post') * (current_data[:,crit] == crit_name)]
-                    x = tmp[:,n]
+                    # draw baseline (original model performance, as average with standard deviation (required for test setting))
+                    #y_baseline = current_data[current_data[:,stage] == 'pre'][:,acc].astype(acc_t)
+                    data_baseline = current_data[current_data[:,stage] == 'pre']
+                    x_baseline = data_baseline[:,n]
 
                     # compute average values for y per x.
-                    y_avg = np.array([np.mean(tmp[tmp[:,n]==xi,value].astype(value_t)) for xi in np.unique(x)])
-                    y_std = np.array([np.std(tmp[tmp[:,n]==xi,value].astype(value_t)) for xi in np.unique(x)])
-                    x = np.unique(x).astype(n_t)
+                    y_baseline_avg = np.array([np.mean(data_baseline[data_baseline[:,n]==xi,value].astype(value_t)) for xi in np.unique(x_baseline)])
+                    y_baseline_std = np.array([np.std(data_baseline[data_baseline[:,n]==xi,value].astype(value_t)) for xi in np.unique(x_baseline)])
+                    x_baseline = np.unique(x_baseline).astype(n_t)
 
                     #sort wrt ascending x
-                    ii = np.argsort(x)
-                    x = x[ii]
-                    y_avg = y_avg[ii]
-                    y_std = y_std[ii]
+                    ii = np.argsort(x_baseline)
+                    x_baseline = x_baseline[ii]
+                    y_baseline_avg = y_baseline_avg[ii]
+                    y_baseline_std = y_baseline_std[ii]
 
-                    #plot the lines
-                    color = color_per_criterion(crit_name)
-                    plt.fill_between(x, y_avg-y_std, np.minimum(y_avg+y_std,100), color=color, alpha=0.2)
-                    plt.plot(x, y_avg, color=color, label=crit_name)
-                    plt.xticks(x,[int(i) if i in [10,50,100,200] else '' for i in x], ha='right')
-                    plt.gca().xaxis.grid(True)
-                    plt.legend(loc='lower right')
+                    plt.fill_between(x_baseline, y_baseline_avg - y_baseline_std, np.minimum(y_baseline_avg + y_baseline_std,100), color='black', alpha=0.2)
+                    plt.plot(x_baseline, y_baseline_avg, '--', color='black', label='no pruning')
 
                     # print out some stats for the table/figure description
-                    for i in range(x.size):
-                        print('dataset={}, stage=post, crit={}, n={} : {} acc = {:.2f}'.format(dset_name, crit_name, x[i], scenario_name, y_avg[i]))
+                    for i in range(x_baseline.size):
+                        print('dataset={}, stage=pre, no pruning, n={} : {} acc = {:.2f}'.format(dset_name, x[i], scenario_name, y_baseline_avg[i]))
                     print()
 
-                plt.xlim([x_min, x_max])
-                #save figure
-                figname = '{}/{}-{}.svg'.format(logdir, dset_name, scenario_name)
-                print('Saving result figure to {}'.format(figname))
-                plt.savefig(figname)
-                plt.show()
-                plt.close()
+                    #draw achual model performance after pruning, m'lady *heavy breathing*
+                    for crit_name in np.unique(current_data[:,crit]):
+                        tmp = current_data[(current_data[:,stage] == 'post') * (current_data[:,crit] == crit_name)]
+                        x = tmp[:,n]
+
+                        # compute average values for y per x.
+                        y_avg = np.array([np.mean(tmp[tmp[:,n]==xi,value].astype(value_t)) for xi in np.unique(x)])
+                        y_std = np.array([np.std(tmp[tmp[:,n]==xi,value].astype(value_t)) for xi in np.unique(x)])
+                        x = np.unique(x).astype(n_t)
+
+                        #sort wrt ascending x
+                        ii = np.argsort(x)
+                        x = x[ii]
+                        y_avg = y_avg[ii]
+                        y_std = y_std[ii]
+
+                        #plot the lines
+                        color = color_per_criterion(crit_name)
+                        plt.fill_between(x, y_avg-y_std, np.minimum(y_avg+y_std,100), color=color, alpha=0.2)
+                        plt.plot(x, y_avg, color=color, label=crit_name)
+                        plt.xticks(x,[int(i) if i in [10,50,100,200] else '' for i in x], ha='right')
+                        plt.gca().xaxis.grid(True)
+                        plt.legend(loc='lower right')
+
+                        # print out some stats for the table/figure description
+                        for i in range(x.size):
+                            print('dataset={}, stage=post, crit={}, n={} : {} acc = {:.2f}'.format(dset_name, crit_name, x[i], scenario_name, y_avg[i]))
+                        print()
+
+                    plt.xlim([x_min, x_max])
+                    #save figure
+                    figname = '{}/{}-{}.svg'.format(logdir, dset_name, scenario_name)
+                    print('Saving result figure to {}'.format(figname))
+                    plt.savefig(figname)
+                    plt.show()
+                    plt.close()
 
 
 
