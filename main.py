@@ -217,7 +217,7 @@ class FilterPruner:
 class PruningFineTuner:
     def __init__(self, model, dataset = 'moon',
                 criterion='lrp', n_samples=5, random_seed=1,
-                render='none', color_map='Dark2', log_file='./log.txt'):
+                render='none', color_map='Dark2', log_file='./log.txt', rank_analysis=False):
 
 
         self.random_seed        = random_seed
@@ -226,6 +226,7 @@ class PruningFineTuner:
         self.n_samples          = n_samples
         self.render             = render
         self.color_map          = color_map
+        self.rank_analysis      = rank_analysis
         self.log_file           = log_file
         self.log_dir            = os.path.dirname(log_file)
         self.log_file           = open(self.log_file, 'ta')
@@ -340,6 +341,13 @@ class PruningFineTuner:
         number_of_dense = self.get_total_number_of_filters()
         filters_to_prune_per_iteration = 1000 #the number of pruned filter
         prune_targets = self.get_candidates_to_prune(filters_to_prune_per_iteration)
+
+        # generate parsable neuron index representation for later rank correlation analysis, write to log, then exit.
+        if self.rank_analysis:
+            #instead of actually pruning, we here are only interested in the candidates selected for pruning. we can thus exit right after writing the data.
+            prune_targets_str = '{}'.format(prune_targets).replace(' ','')
+            self.log_file.write('{} {}\n'.format(self.experiment_name, prune_targets_str))
+            exit()
 
         layers_pruned = {}
         for layer_index, filter_index in prune_targets:
@@ -460,20 +468,21 @@ if __name__ == "__main__":
     valid_rendermodes   = ['none', 'svg', 'show']   # no visualizion, only svg output, svg+on-screen figure
     num_classes         = {'moon':2, 'circle':2, 'mult':4}
 
-    def generate_calls():
+    def generate_calls(args):
         print('Generating parameters and shell scripts for the experiment.')
         print('One shell script per {dataset x criterion} combination, covering all {num_samples x random_seed} variations')
 
-        if not os.path.isdir('scripts'):
-            os.mkdir('scripts')
+        print(args.ranklog)
+        if not os.path.isdir('scripts{}'.format('-rankanalysis' if args.ranklog else '')):
+            os.mkdir('scripts{}'.format('-rankanalysis' if args.ranklog else ''))
 
         rendermode = 'none'
         colormap = 'Set1'
-        logfile = './output/log.txt'
+        logfile = './output{}/log.txt'.format('-rankanalysis' if args.ranklog else '')
 
         for data in valid_datasets:
             for criterion in valid_criteria:
-                scriptfile = 'scripts/{}-{}.sh'.format(data, criterion)
+                scriptfile = 'scripts{}/{}-{}.sh'.format('-rankanalysis' if args.ranklog else '', data, criterion)
                 print('Generating {} ...'.format(scriptfile))
                 with open(scriptfile, 'wt') as f:
                     f.write('#!/bin/bash\n')
@@ -488,7 +497,8 @@ if __name__ == "__main__":
                                    '--dataset {}'.format(data),
                                    '--criterion {}'.format(criterion),
                                    '--numsamples {}'.format(n),
-                                   '--seed {}'.format(s)]
+                                   '--seed {}'.format(s),
+                                   '--ranklog' if args.ranklog else '']
                             f.write(' '.join(cmd) + '\n')
 
         print('Done generating experiment scripts.')
@@ -617,12 +627,13 @@ if __name__ == "__main__":
     parser.add_argument('--logfile',    '-l',   type=str, default='./log.txt',    help='Output log file location. Results will pe appended. File location (folder) must exist!!!')
     parser.add_argument('--generate',   '-g',   action='store_true',              help='Calls a function to generate a bunch of parameterized function calls. Recommendation: First call this tool with "-g", then execute the generated scripts. If --generate is passed, the script will only generate the scripts and then terminate.')
     parser.add_argument('--analyze',    '-a',   action='store_true',              help='Calls a function to analyze the previously generated log file. If --analyze is passed (but not --generate) the script will analyze the log specified via --logdir and draw some figures.')
+    parser.add_argument('--ranklog',    '-rl',  action='store_true',              help='Triggers a generation of scripts (when using -g) and an evaluation output, and analysis (when using -a) for neuron ranking corellations.')
     args = parser.parse_args()
 
 
     # catch the "generate calls" functionality
     if args.generate:
-        generate_calls()
+        generate_calls(args)
         exit()
 
     if args.analyze:
@@ -650,7 +661,8 @@ if __name__ == "__main__":
                                   random_seed=args.seed,
                                   render=args.rendermode,
                                   color_map=args.colormap,
-                                  log_file=args.logfile)
+                                  log_file=args.logfile,
+                                  rank_analysis=args.ranklog)
 
     fine_tuner.evaluate_and_visualize(scenario='train')
     fine_tuner.evaluate_and_visualize(scenario='test')
