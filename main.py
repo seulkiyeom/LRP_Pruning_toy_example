@@ -3,6 +3,7 @@ import argparse
 import itertools
 import json
 import tqdm
+from prettytable import PrettyTable
 
 import numpy as np
 import os
@@ -559,7 +560,6 @@ if __name__ == "__main__":
         data[:,n] = data[:,n].astype(n_t)/(2 + 2*(data[:,dset]=='mult'))
 
         if args.ranklog:
-            # consider using the prettytable package to prepare the results for printing
             # tables to produce
             #
             # over n in reference_sample_counts:
@@ -572,7 +572,7 @@ if __name__ == "__main__":
 
             # filter out irrelevant stuff
             data = data[data[:,scenario]=='rankselection']
-            seeds = np.unique(data[:,seed])[:10] # TODO remove [:10] after debugging
+            seeds = np.unique(data[:,seed]) # NOTE set to [:10] for debugging
             corellation_measures = ['spearman', 'kendalltau']
 
             print('Computing Rank Corellation and Set Intersection')
@@ -584,8 +584,8 @@ if __name__ == "__main__":
                     assert current_data_n.shape[0] > 0, "Error! current_data_n empty after sample filtering"
                     # gather data and compute three kinds of rank corellation and set Itersection
                     # 1) c1 == c2: comparison across seeds with s1!=s2 (else they are identical).
-                    # 2) c1 != c2: comparison across all seeds
-                    # 3) c1 != c2: comparison across same seed
+                    # 2) c1 != c2 or c1 == c2: comparison across all seeds
+                    # 3) c1 != c2 or c1 == c2: comparison across same seed
                     case_1_results = {} # {c1:{c2:{correlation_or_intersection_measure:[list over all the seeds with s1 != s2]}}}
                     case_2_results = {} # {c1:{c2:{correlation_or_intersection_measure:[list over all the seeds]}}}
                     case_3_results = {} # {c1:{c2:{correlation_or_intersection_measure:[list over all the seeds with s1 == s2]}}}
@@ -615,46 +615,101 @@ if __name__ == "__main__":
                                 for k in tmp_set_intersections.keys():
                                     add_to_dict(case_1_results, [c1, c2, k], tmp_set_intersections[k])
 
-                            elif c1 != c2: # case 2 & case 3
-                                add_to_dict(case_3_results, [c1, c2, 'spearman'], scorr)
-                                add_to_dict(case_3_results, [c1, c2, 'kendalltau'], kcorr)
+                            else: # case 2 & case 3
+                                add_to_dict(case_2_results, [c1, c2, 'spearman'], scorr)
+                                add_to_dict(case_2_results, [c1, c2, 'kendalltau'], kcorr)
                                 for k in tmp_set_intersections.keys():
-                                    add_to_dict(case_3_results, [c1, c2, k], tmp_set_intersections[k])
+                                    add_to_dict(case_2_results, [c1, c2, k], tmp_set_intersections[k])
 
                                 if s1 == s2: # case 3 only.
                                     add_to_dict(case_3_results, [c1, c2, 'spearman'], scorr)
                                     add_to_dict(case_3_results, [c1, c2, 'kendalltau'], kcorr)
                                     for k in tmp_set_intersections.keys():
-                                        add_to_dict(case_2_results, [c1, c2, k], tmp_set_intersections[k])
+                                        add_to_dict(case_3_results, [c1, c2, k], tmp_set_intersections[k])
 
 
-                    # TODO: also print separator lines betweend datasets etc
                     # whole tables per measure.
                     # for each combination of dset and num_samples
                     # write out case_results here.
                     with open('{}/rank_and_set.txt'.format(logdir), 'at') as f:
-                        f.write('\ndataset={} num_samples={}\n'.format(dset_name, n_samples))
-                        for k1 in case_1_results.keys(): # TODO: make pretty via prettytable
-                            for k2 in case_1_results[k1].keys():
-                                for corrtype in corellation_measures:# loop over available 3rd-level keys, instead of hardcoded ones.
-                                    val = np.mean(case_1_results[k1][k2][corrtype])
-                                    f.write('{} {} {} {}\n'.format(k1, k2, corrtype, val))
+                        ##
+                        ## CASE 1 RESULTS
+                        ##
+                        header_template = '# {} n={} case 1: self-compare criteria across random seeds -> check pruning consistency'.format(dset_name, n_samples).upper()
+                        header_support = '#' * len(header_template)
+                        header = '\n'.join([header_support, header_template, header_support])
+
+                        # assumption: all pairs of stuff have been computed on the same things
+                        criteria = list(case_1_results.keys())
+                        all_measures = list(list(list(case_1_results.values())[0].values())[0].keys())
+
+                        f.write(header)
+                        f.write('\n'*3)
+
+                        for m in all_measures:
+                            t = PrettyTable()
+                            t.field_names = [m] + criteria
+                            for i, c in enumerate(criteria):
+                                val = np.mean(case_1_results[c][c][m])
+                                t.add_row([c] + i*[''] + ['{:.3f}'.format(val)] + ['']*(len(criteria)-1-i))
+
+                            f.write(str(t))
+                            f.write('\n'*2)
+
+
+                        ##
+                        ## CASE 2
+                        ##
+                        header_template = '# {} n={} case 2: cross-compare criteria across all random seeds -> check relationship between criteria'.format(dset_name, n_samples).upper()
+                        header_support = '#' * len(header_template)
+                        header = '\n'.join([header_support, header_template, header_support])
+
+                        f.write(header)
+                        f.write('\n'*3)
+
+                        for m in all_measures:
+                            t = PrettyTable()
+                            t.field_names = [m] + criteria
+                            for cr in criteria:
+                                row = [cr]
+                                for cc in criteria:
+                                    val = np.mean(case_2_results[cr][cc][m])
+                                    row += ['{:.3f}'.format(val)]
+                                t.add_row(row)
+
+                            f.write(str(t))
+                            f.write('\n'*2)
+
+
+
+                        ##
+                        ## CASE 3
+                        ##
+                        header_template = '# {} n={} case 3 cross-compare criteria, same random seeds only! -> check relationship between criteria wrt same data source'.format(dset_name, n_samples).upper()
+                        header_support = '#' * len(header_template)
+                        header = '\n'.join([header_support, header_template, header_support])
+
+                        f.write(header)
+                        f.write('\n'*3)
+
+                        for m in all_measures:
+                            t = PrettyTable()
+                            t.field_names = [m] + criteria
+                            for cr in criteria:
+                                row = [cr]
+                                for cc in criteria:
+                                    val = np.mean(case_3_results[cr][cc][m])
+                                    row += ['{:.3f}'.format(val)]
+                                t.add_row(row)
+
+                            f.write(str(t))
+                            f.write('\n'*2)
 
 
 
 
 
 
-
-
-                    # for correlation_measure in :
-
-                            # same method: compare across seeds
-
-
-
-                        # now compute the stuff. make sure to not compare the same seed to itself if m1==m2
-                        # compute the average rank corellation, and the stdev
 
 
 
