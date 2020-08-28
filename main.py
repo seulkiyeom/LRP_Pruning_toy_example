@@ -181,8 +181,8 @@ class FilterPruner:
                         self.filter_ranks[i] = v.cpu()
 
     def get_pruning_plan(self, num_filters_to_prune):
-        filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
-        # filters_to_prune contains tuples of: (layer number, filter index, its)
+        filters_to_prune, all_filters_with_score = self.lowest_ranking_filters(num_filters_to_prune)
+        # filters_to_prune contains tuples of: (layer number, filter index, its score)
 
         # After each of the k filters are pruned,
         # the filter index of the next filters change since the model is smaller.
@@ -202,14 +202,14 @@ class FilterPruner:
             for i in filters_to_prune_per_layer[l]:
                 filters_to_prune.append((l, i))
 
-        return filters_to_prune
+        return filters_to_prune, all_filters_with_score
 
     def lowest_ranking_filters(self, num):
         data = []
         for i in sorted(self.filter_ranks.keys()):
             for j in range(self.filter_ranks[i].size(0)):
                 data.append((self.activation_to_layer[i], j, self.filter_ranks[i][j]))
-        return nsmallest(num, data, itemgetter(2))
+        return nsmallest(num, data, itemgetter(2)), data #additionally return rank over all neurons
 
 
 
@@ -340,13 +340,18 @@ class PruningFineTuner:
     def prune(self):
         number_of_dense = self.get_total_number_of_filters()
         filters_to_prune_per_iteration = 1000 #the number of pruned filter
-        prune_targets = self.get_candidates_to_prune(filters_to_prune_per_iteration)
+        prune_targets, all_targets_with_score = self.get_candidates_to_prune(filters_to_prune_per_iteration)
 
         # generate parsable neuron index representation for later rank correlation analysis, write to log, then exit.
         if self.rank_analysis:
-            #instead of actually pruning, we here are only interested in the candidates selected for pruning. we can thus exit right after writing the data.
-            prune_targets_str = '{}'.format(prune_targets).replace(' ','')
-            self.log_file.write('{} {}\n'.format(self.experiment_name, prune_targets_str))
+            # instead of actually pruning, we here are only interested in the candidates and how they are ranked for pruning.
+            # we can thus exit right after writing the data.
+            all_targets_with_score_str = '{}'.format([(t[0], t[1], float(t[2].numpy())) for t in all_targets_with_score])
+            all_targets_with_score_str = all_targets_with_score_str.replace(' ','')
+
+            eval_name = '{}-scenario:{}-stage:{}'.format(self.experiment_name, 'rankselection', self.pruning_stage)
+            self.log_file.write('{} {}\n'.format(eval_name, all_targets_with_score_str))
+            self.log_file.close() # manually close the file, to flush it (otherwise exit() prevents the writing)
             exit()
 
         layers_pruned = {}
