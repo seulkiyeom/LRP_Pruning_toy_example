@@ -3,3 +3,5 @@ matplotlib
 scikit-learn
 pandas
 torch
+tqdm
+prettytable

@@ -2,11 +2,13 @@ from collections import OrderedDict
 import argparse
 import itertools
 import json
+import tqdm
 
 import numpy as np
 import os
 import matplotlib.pyplot as plt
 from sklearn.datasets import make_moons, make_circles
+from scipy.stats import kendalltau, spearmanr
 from pandas import DataFrame
 
 import torch
@@ -21,6 +23,7 @@ from modules.prune import prune_layer_toy
 
 from heapq import nsmallest
 from operator import itemgetter
+
 
 
 
@@ -525,6 +528,20 @@ if __name__ == "__main__":
         #some helper fxns
         def concat_helper(lists): return lists[0] + lists[1] # helper fxn due to the inavailability of unpacking inlist comprehensions
         def color_per_criterion(crit): return {'lrp':'red','weight':'black', 'grad':'green', 'taylor':'blue'}[crit]
+        def correlation(data1, data2, measure='spearman'): return {'spearman':spearmanr, 'kendalltau':kendalltau}[measure](data1,data2)[0] # index 0: only collect correlation, not p-value
+        def add_to_dict(result_dict, keylist, value):
+            #dynamically expands a dictionary
+            if len(keylist) == 1:
+                if keylist[0] in result_dict:
+                    result_dict[keylist[0]] += [value]
+                else:
+                    result_dict[keylist[0]] = [value]
+            else:
+                if not keylist[0] in result_dict:
+                    result_dict[keylist[0]] = {}
+                add_to_dict(result_dict[keylist[0]], keylist[1::], value)
+
+
 
         # read and parse the log.
         # sample log line:
@@ -542,10 +559,98 @@ if __name__ == "__main__":
         data[:,n] = data[:,n].astype(n_t)/(2 + 2*(data[:,dset]=='mult'))
 
         if args.ranklog:
-            # analyze the logs wrt rank here. TODO.
-            # also analyze the logs wrt set overlap among the first k neurons here. TODO
-            print('Pruning rank analysis not implemented yet!')
             # consider using the prettytable package to prepare the results for printing
+            # tables to produce
+            #
+            # over n in reference_sample_counts:
+            #     - rank corellation
+            #     method vs method (except for identical seed, except for weight). one table, since for computing the rank, one has to consider all neurons
+            #
+            #    for k in set_sizes_of_k
+            #        - set intersection
+            #        method vs method, for different set sizes of the first k (= least important  k) neurons/filters
+
+
+
+            # filter out irrelevant stuff
+            data = data[data[:,scenario]=='rankselection']
+            seeds = np.unique(data[:,seed])[:10] # TODO remove [:10] after debugging
+            corellation_measures = ['spearman', 'kendalltau']
+
+            print('Computing Rank Corellation and Set Intersection')
+            for dset_name in tqdm.tqdm(valid_datasets, desc="datasets",leave=False): # approach: progressively filter out data to mimize search times a iteration depth increases
+                current_data = data[data[:,dset] == dset_name]
+                assert current_data.shape[0] > 0, "Error! current_data empty after dset filtering"
+                for n_samples in tqdm.tqdm(sorted(np.unique(data[:,n])),desc="sample counts",leave=False) :
+                    current_data_n = current_data[current_data[:,n] == n_samples]
+                    assert current_data_n.shape[0] > 0, "Error! current_data_n empty after sample filtering"
+                    # gather data and compute three kinds of rank corellation and set Itersection
+                    # 1) c1 == c2: comparison across seeds with s1!=s2 (else they are identical).
+                    # 2) c1 != c2: comparison across all seeds
+                    # 3) c1 != c2: comparison across same seed
+                    rank_case_1_results = {} # {c1:{c2:{correlation_measure:[list over all the seeds with s1 != s2]}}}
+                    rank_case_2_results = {} # {c1:{c2:{correlation_measure:[list over all the seeds]}}}
+                    rank_case_3_results = {} # {c1:{c2:{correlation_measure:[list over all the seeds with s1 == s2]}}}
+                    # TODO: NEXT TO CORELLATIONS ALSO COMPUTE SET INTERSECTION WITH some K (start with big k, go to small k. save lots of k to select later)
+
+                    for c1, c2 in tqdm.tqdm(list(itertools.product(valid_criteria, valid_criteria)), desc='criteria combinations',leave=False):
+                        c1_data = current_data_n[(current_data_n[:,crit] == c1)]
+                        c2_data = current_data_n[(current_data_n[:,crit] == c2)]
+                        assert c1_data.shape[0] > 0, "Error! c1_data empty after criterion filtering"
+                        assert c2_data.shape[0] > 0, "Error! c2_data empty after criterion filtering"
+
+                        for s1, s2 in tqdm.tqdm(list(itertools.product(seeds, seeds)), desc="random seed combinations",leave=False):
+                            if c1 == c2 and s1 != s2: # case 1
+                                data1 = json.loads(c1_data[c1_data[:,seed]==s1][0,value])
+                                data2 = json.loads(c2_data[c2_data[:,seed]==s2][0,value])
+                                add_to_dict(rank_case_1_results, [c1, c2, 'spearman'], correlation(data1, data2, 'spearman'))
+                                add_to_dict(rank_case_1_results, [c1, c2, 'kendalltau'], correlation(data1, data2, 'kendalltau'))
+                            elif c1 != c2:
+                                data1 = json.loads(c1_data[c1_data[:,seed]==s1][0,value])
+                                data2 = json.loads(c2_data[c2_data[:,seed]==s2][0,value])
+                                scorr = correlation(data1, data2, 'spearman')
+                                kcorr = correlation(data1, data2, 'kendalltau')
+
+                                if s1 == s2: # case 3 only.
+                                    add_to_dict(rank_case_3_results, [c1, c2, 'spearman'], scorr)
+                                    add_to_dict(rank_case_3_results, [c1, c2, 'kendalltau'], kcorr)
+
+                                # case 2 also
+                                add_to_dict(rank_case_3_results, [c1, c2, 'spearman'], scorr)
+                                add_to_dict(rank_case_3_results, [c1, c2, 'kendalltau'], kcorr)
+
+
+
+                    # for each combination of dset and num_samples
+                    # write out case_results here.
+                    with open('{}/rank_and_set.txt'.format(logdir), 'at') as f:
+                        f.write('\ndataset={} num_samples={}\n'.format(dset_name, n_samples))
+                        for k1 in rank_case_1_results.keys(): # TODO: make pretty via prettytable
+                            for k2 in rank_case_1_results[k1].keys():
+                                for corrtype in corellation_measures:
+                                    val = np.mean(rank_case_1_results[k1][k2][corrtype])
+                                    f.write('{} {} {} {}\n'.format(k1, k2, corrtype, val))
+
+
+
+
+
+
+
+
+
+                    # for correlation_measure in :
+
+                            # same method: compare across seeds
+
+
+
+                        # now compute the stuff. make sure to not compare the same seed to itself if m1==m2
+                        # compute the average rank corellation, and the stdev
+
+
+
+
 
         else:
             # analyze accuracy post-pruning wrt n and criterion here
