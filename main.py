@@ -651,7 +651,8 @@ if __name__ == "__main__":
                             t.field_names = [m] + criteria
                             for i, c in enumerate(criteria):
                                 val = np.mean(case_1_results[c][c][m])
-                                t.add_row([c] + i*[''] + ['{:.3f}'.format(val)] + ['']*(len(criteria)-1-i))
+                                std = np.std(case_1_results[c][c][m])
+                                t.add_row([c] + i*[''] + ['{:.3f}+-{:.3f}'.format(val, std)] + ['']*(len(criteria)-1-i))
 
                             f.write(str(t))
                             f.write('\n'*2)
@@ -674,7 +675,8 @@ if __name__ == "__main__":
                                 row = [cr]
                                 for cc in criteria:
                                     val = np.mean(case_2_results[cr][cc][m])
-                                    row += ['{:.3f}'.format(val)]
+                                    std = np.std(case_2_results[cr][cc][m])
+                                    row += ['{:.3f}+-{:.3f}'.format(val, std)]
                                 t.add_row(row)
 
                             f.write(str(t))
@@ -699,7 +701,8 @@ if __name__ == "__main__":
                                 row = [cr]
                                 for cc in criteria:
                                     val = np.mean(case_3_results[cr][cc][m])
-                                    row += ['{:.3f}'.format(val)]
+                                    std = np.std(case_3_results[cr][cc][m])
+                                    row += ['{:.3f}+-{:.3f}'.format(val,std)]
                                 t.add_row(row)
 
                             f.write(str(t))
