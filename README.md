@@ -1,5 +1,5 @@
 # An example for Neural Network Pruning with LRP and other measures, based on 2D toy datasets.
-[Link to Preprint](reference link: https://arxiv.org/abs/1912.08881)
+[>> Link to Preprint  <<](https://arxiv.org/abs/1912.08881)
 
 ![The impact Neural Network Pruning to the model's decision boundary](toy-figure-mk2-test.png)
 **Qualitative comparison of the impact of the pruning criteria on the models’ decision function on three toy datasets.**
