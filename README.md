@@ -73,7 +73,7 @@ Logs pre-computed for full pruning runs over 50 random seeds, as well as neuron 
 
 A shell script as well as a resulting log file and csv figure files for generating the qualitative toy figure [toy-figure-mk2-test.png](toy-figure-mk2-test.png) above can be found in folder `output-toy-figure-mk2`.
 
-The log files for comparing model performances (resulting i.e. in the pruning performance figure [](output/combined-processed.png) above) can be analyzed by adding the switch `--analyze` (`-a`), which overrides any other instructions (except for `-g`, which overrides the behavior of `-a`). An optional addition of the `--rl` switch directs the analysis towards neuron selection during pruning, instead of performance a comparison. An analysis can be instigated e.g. via specification of the log file containing the various statistics
+The log files for comparing model performances (resulting i.e. in the pruning performance figure [output/combined-processed.png](output/combined-processed.png) above) can be analyzed by adding the switch `--analyze` (`-a`), which overrides any other instructions (except for `-g`, which overrides the behavior of `-a`). An optional addition of the `--rl` switch directs the analysis towards neuron selection during pruning, instead of performance a comparison. An analysis can be instigated e.g. via specification of the log file containing the various statistics
 ```
 $ python -a -rl -l output-rankanalysis/log.txt
 ```
