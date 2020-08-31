@@ -572,17 +572,19 @@ if __name__ == "__main__":
 
             # filter out irrelevant stuff
             data = data[data[:,scenario]=='rankselection']
-            seeds = np.unique(data[:,seed]) # NOTE set to [:10] for debugging
+            seeds = np.unique(data[:,seed]) # NOTE set to or lower [:10] for debugging
             corellation_measures = ['spearman', 'kendalltau']
+            set_sizes = [125, 250, 500, 1000] #set sizes for intersection computation
 
-            print('Computing Rank Corellation and Set Intersection')
+
+            print('Computing Rank Corellation and Set Intersection Scores')
             for dset_name in tqdm.tqdm(valid_datasets, desc="datasets",leave=False): # approach: progressively filter out data to mimize search times a iteration depth increases
                 current_data = data[data[:,dset] == dset_name]
                 assert current_data.shape[0] > 0, "Error! current_data empty after dset filtering"
-                for n_samples in tqdm.tqdm(sorted(np.unique(data[:,n])),desc="sample counts",leave=False) :
+                for n_samples in tqdm.tqdm(np.unique(data[:,n])[np.argsort(np.unique(data[:,n]).astype(n_t))] ,desc="sample counts",leave=False) :
                     current_data_n = current_data[current_data[:,n] == n_samples]
                     assert current_data_n.shape[0] > 0, "Error! current_data_n empty after sample filtering"
-                    # gather data and compute three kinds of rank corellation and set Itersection
+                    # gather data and compute three kinds of rank corellation and set Itersection (case four can be found further below)
                     # 1) c1 == c2: comparison across seeds with s1!=s2 (else they are identical).
                     # 2) c1 != c2 or c1 == c2: comparison across all seeds
                     # 3) c1 != c2 or c1 == c2: comparison across same seed
@@ -603,7 +605,7 @@ if __name__ == "__main__":
                             kcorr = correlation(data1, data2, 'kendalltau')
 
                             tmp_set_intersections = {} # {first-<k>/last-<k>:[list over all seeds]}
-                            for k in [125, 250, 500, 1000]: #set sizes for intersection computation
+                            for k in set_sizes:
                                 firstk_intersection_coverage    = len(set(data1[:k]).intersection(data2[:k]))/k
                                 lastk_intersection_coverage     = len(set(data1[-k:]).intersection(data2[-k:]))/k
                                 tmp_set_intersections['first-{}'.format(k)] = firstk_intersection_coverage
@@ -631,7 +633,7 @@ if __name__ == "__main__":
                     # whole tables per measure.
                     # for each combination of dset and num_samples
                     # write out case_results here.
-                    with open('{}/rank_and_set.txt'.format(logdir), 'at') as f:
+                    with open('{}/rank_and_set-{}.txt'.format(logdir, dset_name), 'at') as f:
                         ##
                         ## CASE 1 RESULTS
                         ##
@@ -702,6 +704,110 @@ if __name__ == "__main__":
                                 for cc in criteria:
                                     val = np.mean(case_3_results[cr][cc][m])
                                     std = np.std(case_3_results[cr][cc][m])
+                                    row += ['{:.3f}+-{:.3f}'.format(val,std)]
+                                t.add_row(row)
+
+                            f.write(str(t))
+                            f.write('\n'*2)
+
+
+
+                #
+                # Compute cases 4 and 5
+                # in addition to above result sets
+                #
+                for c in tqdm.tqdm(valid_criteria, desc="global criteria consistency", leave=False):
+                    # 4) and 5) comparison of neuron rank order for one method, across sample sizes
+                    case_4_results = {} # {n1:{n2:{correlation_or_intersection_measure:[list over all the seeds with s1 != s2 or s1 == 2]}}}
+                    case_5_results = {} # {n1:{n2:{correlation_or_intersection_measure:[list over all the seeds with s1 == 2]}}}
+                    current_data_c = current_data[current_data[:,crit] == c]
+                    assert current_data_c.shape[0] > 0, "Error! current_data_c empty after sample filtering"
+
+                    for n1, n2 in tqdm.tqdm(list(itertools.product(np.unique(data[:,n]), np.unique(data[:,n]))), desc="sample set size combinations", leave=False):
+                        n1_data = current_data_c[current_data_c[:,n] == n1]
+                        n2_data = current_data_c[current_data_c[:,n] == n2]
+                        assert n1_data.shape[0] > 0, "Error! n1_data empty after criterion filtering"
+                        assert n2_data.shape[0] > 0, "Error! n2_data empty after criterion filtering"
+
+                        for s1, s2 in tqdm.tqdm(list(itertools.product(seeds, seeds)), desc="random seed combinations", leave=False):
+                            data1 = json.loads(n1_data[n1_data[:,seed]==s1][0,value])
+                            data2 = json.loads(n2_data[n2_data[:,seed]==s2][0,value])
+                            scorr = correlation(data1, data2, 'spearman')
+                            kcorr = correlation(data1, data2, 'kendalltau')
+
+                            tmp_set_intersections = {} # {first-<k>/last-<k>:[list over all seeds]}
+                            for k in set_sizes:
+                                firstk_intersection_coverage    = len(set(data1[:k]).intersection(data2[:k]))/k
+                                lastk_intersection_coverage     = len(set(data1[-k:]).intersection(data2[-k:]))/k
+                                tmp_set_intersections['first-{}'.format(k)] = firstk_intersection_coverage
+                                tmp_set_intersections['last-{}'.format(k)] = lastk_intersection_coverage
+
+                            add_to_dict(case_4_results, [n1, n2, 'spearman'], scorr)
+                            add_to_dict(case_4_results, [n1, n2, 'kendalltau'], kcorr)
+                            for k in tmp_set_intersections.keys():
+                                    add_to_dict(case_4_results, [n1, n2, k], tmp_set_intersections[k])
+
+                            if s1 == s2:
+                                add_to_dict(case_5_results, [n1, n2, 'spearman'], scorr)
+                                add_to_dict(case_5_results, [n1, n2, 'kendalltau'], kcorr)
+                                for k in tmp_set_intersections.keys():
+                                        add_to_dict(case_5_results, [n1, n2, k], tmp_set_intersections[k])
+
+
+                    # write out results for  cases 4 and 5
+                    # whole tables per criterion.
+                    # for each combination of num_samples, over the seeds
+                    # write out case_results here.
+                    with open('{}/rank_and_set-{}.txt'.format(logdir, dset_name), 'at') as f:
+                        ##
+                        ## CASE 4 RESULTS
+                        ##
+                        header_template = '# {} and {} case 4: self-compare criteria across sample sizes (and random seeds) -> check pruning consistency'.format(dset_name, c).upper()
+                        header_support = '#' * len(header_template)
+                        header = '\n'.join([header_support, header_template, header_support])
+
+                        # assumption: all pairs of stuff have been computed on the same things
+                        criterion = c
+                        all_n_samples = np.array(list(case_4_results.keys()))
+                        all_n_samples = list(all_n_samples[np.argsort(all_n_samples.astype(np.float32))]) #order ascendingly
+                        all_measures = list(list(list(case_4_results.values())[0].values())[0].keys())
+
+                        f.write(header)
+                        f.write('\n'*3)
+
+                        for m in all_measures:
+                            t = PrettyTable()
+                            t.field_names = ['{}:{}'.format(criterion, m)] + all_n_samples
+                            for nr in all_n_samples:
+                                row = [nr]
+                                for nc in all_n_samples:
+                                    val = np.mean(case_4_results[nr][nc][m])
+                                    std = np.std(case_4_results[nr][nc][m])
+                                    row += ['{:.3f}+-{:.3f}'.format(val,std)]
+                                t.add_row(row)
+
+                            f.write(str(t))
+                            f.write('\n'*2)
+
+
+                        ##
+                        ## CASE 5 RESULTS
+                        ##
+                        header_template = '# {} and {} case 5: self-compare criteria across sample sizes (same seed only) -> check pruning consistency'.format(dset_name, c).upper()
+                        header_support = '#' * len(header_template)
+                        header = '\n'.join([header_support, header_template, header_support])
+
+                        f.write(header)
+                        f.write('\n'*3)
+
+                        for m in all_measures:
+                            t = PrettyTable()
+                            t.field_names = ['{}:{}'.format(criterion, m)] + all_n_samples
+                            for nr in all_n_samples:
+                                row = [nr]
+                                for nc in all_n_samples:
+                                    val = np.mean(case_5_results[nr][nc][m])
+                                    std = np.std(case_5_results[nr][nc][m])
                                     row += ['{:.3f}+-{:.3f}'.format(val,std)]
                                 t.add_row(row)
 
