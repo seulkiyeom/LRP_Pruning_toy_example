@@ -1,0 +1,5 @@
+# IDE config
+.vscode
+
+# compiled binaries
+*.pyc
