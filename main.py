@@ -521,11 +521,16 @@ if __name__ == "__main__":
         dirname_suffix = '{}'.format('-rankanalysis' if args.ranklog else ('-noisytest-{}'.format(args.noisytest) if args.noisytest else ''))
         scriptdir = 'scripts{}'.format(dirname_suffix)
         if not os.path.isdir(scriptdir):
+            print('Generating {}/'.format(scriptdir))
             os.mkdir(scriptdir)
 
         rendermode = 'none'
         colormap = 'Accent'
         logfile = './output{}/log.txt'.format(dirname_suffix)
+        logdir = os.path.dirname(logfile)
+        if not os.path.isdir(logdir):
+            print('Generating {}/'.format(logdir))
+            os.mkdir(logdir)
 
         for data in valid_datasets:
             for criterion in valid_criteria:
