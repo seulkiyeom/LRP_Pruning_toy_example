@@ -327,10 +327,10 @@ class PruningFineTuner:
 
             X_test = X
             y_test_true = y
-            return X_test, y_test_true
         else:
             raise ValueError('Unsupported Dataset name "{}"'.format(self.dataset))
 
+        return X_test, y_test_true
 
     def get_total_number_of_filters(self):
         # counts the total number of non-output dense layer filters in the network
