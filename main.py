@@ -518,17 +518,18 @@ if __name__ == "__main__":
         print('Generating parameters and shell scripts for the experiment.')
         print('One shell script per {dataset x criterion} combination, covering all {num_samples x random_seed} variations')
 
-        print(args.ranklog)
-        if not os.path.isdir('scripts{}'.format('-rankanalysis' if args.ranklog else '')):
-            os.mkdir('scripts{}'.format('-rankanalysis' if args.ranklog else ''))
+        dirname_suffix = '{}'.format('-rankanalysis' if args.ranklog else ('-noisytest-{}'.format(args.noisytest) if args.noisytest else ''))
+        scriptdir = 'scripts{}'.format(dirname_suffix)
+        if not os.path.isdir(scriptdir):
+            os.mkdir(scriptdir)
 
         rendermode = 'none'
-        colormap = 'Set1'
-        logfile = './output{}/log.txt'.format('-rankanalysis' if args.ranklog else '')
+        colormap = 'Accent'
+        logfile = './output{}/log.txt'.format(dirname_suffix)
 
         for data in valid_datasets:
             for criterion in valid_criteria:
-                scriptfile = 'scripts{}/{}-{}.sh'.format('-rankanalysis' if args.ranklog else '', data, criterion)
+                scriptfile = 'scripts{}/{}-{}.sh'.format(dirname_suffix, data, criterion)
                 print('Generating {} ...'.format(scriptfile))
                 with open(scriptfile, 'wt') as f:
                     f.write('#!/bin/bash\n')
@@ -544,7 +545,7 @@ if __name__ == "__main__":
                                    '--criterion {}'.format(criterion),
                                    '--numsamples {}'.format(n),
                                    '--seed {}'.format(s),
-                                   '--ranklog' if args.ranklog else '']
+                                   '--ranklog' if args.ranklog else ('--noisytest {}'.format(args.noisytest) if args.noisytest else '')]
                             f.write(' '.join(cmd) + '\n')
 
         print('Done generating experiment scripts.')
