@@ -222,7 +222,7 @@ class FilterPruner:
 class PruningFineTuner:
     def __init__(self, model, dataset = 'moon',
                 criterion='lrp', n_samples=5, random_seed=1,
-                render='none', color_map='Dark2', log_file='./log.txt', rank_analysis=False):
+                render='none', color_map='Dark2', log_file='./log.txt', rank_analysis=False, noisy_test=0.0):
 
 
         self.random_seed        = random_seed
@@ -232,6 +232,7 @@ class PruningFineTuner:
         self.render             = render
         self.color_map          = color_map
         self.rank_analysis      = rank_analysis
+        self.noisy_test_sigma   = noisy_test
         self.log_file           = log_file
         self.log_dir            = os.path.dirname(log_file)
         self.log_file           = open(self.log_file, 'ta')
@@ -251,29 +252,7 @@ class PruningFineTuner:
         X_train = np.load('data/' + str(self.dataset) + '_train_X.npy')
         y_train_true = np.load('data/' + str(self.dataset) + '_train_y.npy')
 
-        # ad-hoc generate test data instead, using the previously set random seed
-        if self.dataset == 'moon':
-            X_test, y_test_true = make_moons(n_samples=n_samples, noise=0.1, random_state=self.random_seed)
-        elif self.dataset == 'circle':
-            X_test, y_test_true = make_circles(n_samples=n_samples, noise=0.1, factor=0.3, random_state=self.random_seed)
-        elif self.dataset == 'mult':
-            np.random.seed(self.random_seed)
-            D = 2  # dimensionality
-            K = 4  # number of classes
-            N = int(n_samples/K) #samples per class
-            X = np.zeros((N * K, D))  # data matrix (each row = single example)
-            y = np.zeros(N * K, dtype='uint8')  # class labels
-            for j in range(K):
-                 ix = range(N * j, N * (j + 1))
-                 r = np.linspace(0.0, 1, N)  # radius
-                 t = np.linspace(j * 4, (j + 1) * 4, N) + np.random.randn(N) * 0.2  # theta
-                 X[ix] = np.c_[r * np.sin(t), r * np.cos(t)]
-                 y[ix] = j
-
-            X_test = X
-            y_test_true = y
-        else:
-            raise ValueError('Unsupported Dataset name "{}"'.format(self.dataset))
+        X_test, y_test_true = self.generate_data(self.dataset, n_samples, self.random_seed+1)
 
         X_train         = X_train.astype(np.float32)
         y_train_true    = y_train_true.astype(np.int64)
@@ -296,6 +275,26 @@ class PruningFineTuner:
         self.X_train = Variable(X_train)
         self.y_train_true = Variable(y_train_true)
 
+
+        # in case we want to evaluate with a noisy and extra-large test set not used for pruning
+        if self.noisy_test_sigma > 0:
+            # fixed number of test samples per class: 500
+            X_test_noisy, y_test_noisy = self.generate_data(self.dataset, 500, self.random_seed+1)
+            X_test_noisy = X_test_noisy.astype(np.float32)
+            y_test_noisy = y_test_noisy.astype(np.int64)
+
+            X_test_noisy += np.random.normal(0, self.noisy_test_sigma, X_test_noisy.shape) # additive gaussian noise
+
+            # to torch
+            X_test_noisy = torch.from_numpy(X_test_noisy)
+            y_test_noisy = torch.from_numpy(y_test_noisy)
+            if torch.cuda.is_available():
+                X_test_noisy = X_test_noisy.cuda()
+                y_test_noisy = y_test_noisy.cuda()
+            self.X_test_noisy = Variable(X_test_noisy)
+            self.y_test_noisy = Variable(y_test_noisy)
+
+
         self.model = model
         self.criterion = nn.CrossEntropyLoss()
 
@@ -304,6 +303,34 @@ class PruningFineTuner:
         self.model.load_state_dict(torch.load('model/' + 'model_' + str(self.dataset),\
                                     map_location='gpu' if torch.cuda.is_available() else 'cpu'))
         self.pruner = FilterPruner(self.model, self.pruning_criterion)
+
+
+    def generate_data(self, dset_name, n_samples, random_seed):
+        # ad-hoc generate test data instead, using the previously set random seed
+        if self.dataset == 'moon':
+            X_test, y_test_true = make_moons(n_samples=n_samples, noise=0.1, random_state=random_seed)
+        elif self.dataset == 'circle':
+            X_test, y_test_true = make_circles(n_samples=n_samples, noise=0.1, factor=0.3, random_state=random_seed)
+        elif self.dataset == 'mult':
+            np.random.seed(random_seed)
+            D = 2  # dimensionality
+            K = 4  # number of classes
+            N = int(n_samples/K) #samples per class
+            X = np.zeros((N * K, D))  # data matrix (each row = single example)
+            y = np.zeros(N * K, dtype='uint8')  # class labels
+            for j in range(K):
+                 ix = range(N * j, N * (j + 1))
+                 r = np.linspace(0.0, 1, N)  # radius
+                 t = np.linspace(j * 4, (j + 1) * 4, N) + np.random.randn(N) * 0.2  # theta
+                 X[ix] = np.c_[r * np.sin(t), r * np.cos(t)]
+                 y[ix] = j
+
+            X_test = X
+            y_test_true = y
+            return X_test, y_test_true
+        else:
+            raise ValueError('Unsupported Dataset name "{}"'.format(self.dataset))
+
 
     def get_total_number_of_filters(self):
         # counts the total number of non-output dense layer filters in the network
@@ -395,8 +422,12 @@ class PruningFineTuner:
             X       = self.X_train
             y_true  =  self.y_train_true
         elif scenario == 'test':
-            X       = self.X_test
-            y_true  = self.y_test_true
+            if self.noisy_test_sigma > 0:
+                X       = self.X_test_noisy
+                y_true  = self.y_test_noisy
+            else:
+                X       = self.X_test
+                y_true  = self.y_test_true
         else:
             raise ValueError('Unsupported scenario "{}" in {}.evaluate_and_visualize'.format(scenario, self.__class__.__name__))
 
@@ -925,6 +956,7 @@ if __name__ == "__main__":
     parser.add_argument('--generate',   '-g',   action='store_true',              help='Calls a function to generate a bunch of parameterized function calls. Recommendation: First call this tool with "-g", then execute the generated scripts. If --generate is passed, the script will only generate the scripts and then terminate.')
     parser.add_argument('--analyze',    '-a',   action='store_true',              help='Calls a function to analyze the previously generated log file. If --analyze is passed (but not --generate) the script will analyze the log specified via --logdir and draw some figures.')
     parser.add_argument('--ranklog',    '-rl',  action='store_true',              help='Triggers a generation of scripts (when using -g) and an evaluation output, and analysis (when using -a) for neuron ranking corellations.')
+    parser.add_argument('--noisytest',  '-nt',  type=float, default=0.0,          help='The -nt parameter specifies the intensity of some EXTRA gaussian noise added to the dataset. That is, given the parameter >0, a secondary larger test set will be generated just for the purpose of testing the model (not for pruning).')
     args = parser.parse_args()
 
 
@@ -960,7 +992,8 @@ if __name__ == "__main__":
                                   render=args.rendermode,
                                   color_map=args.colormap,
                                   log_file=args.logfile,
-                                  rank_analysis=args.ranklog)
+                                  rank_analysis=args.ranklog,
+                                  noisy_test=args.noisytest)
 
     fine_tuner.evaluate_and_visualize(scenario='train')
     fine_tuner.evaluate_and_visualize(scenario='test')
