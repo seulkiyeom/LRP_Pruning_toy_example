@@ -947,7 +947,7 @@ if __name__ == "__main__":
 
 
     ###############################
-    #   actual "main" part of main.
+    # actual "main" part of main.
     ###############################
 
 
@@ -955,13 +955,13 @@ if __name__ == "__main__":
     parser.add_argument('--dataset',    '-d',   type=str, default='mult',         help='The toy dataset to use. Choices: {}'.format(', '.join(valid_datasets)))
     parser.add_argument('--criterion',  '-c',   type=str, default='lrp',          help='The criterion to use for pruning. Choices: {}'.format(', '.join(valid_criteria)))
     parser.add_argument('--numsamples', '-n',   type=int, default=5,              help='Number of training samples to use for computing the pruning criterion.')
-    parser.add_argument('--seed',       '-s',   type=int, default=1,              help='Random seed used for (random) sample selection for pruning criterion computation.')
+    parser.add_argument('--seed',       '-s',   type=int, default=1,              help='Random seed used for (random) sample selection for pruning criterion computation/testing.')
     parser.add_argument('--rendermode', '-r',   type=str, default='none',         help='Is result visualization desired? Choices: {}'.format(', '.join(valid_rendermodes)))
-    parser.add_argument('--colormap',   '-cm',  type=str, default='Dark2',        help='The colormap to use for rendering the output figures. Must be a valid one from matplotlib.')
-    parser.add_argument('--logfile',    '-l',   type=str, default='./log.txt',    help='Output log file location. Results will pe appended. File location (folder) must exist!!!')
-    parser.add_argument('--generate',   '-g',   action='store_true',              help='Calls a function to generate a bunch of parameterized function calls. Recommendation: First call this tool with "-g", then execute the generated scripts. If --generate is passed, the script will only generate the scripts and then terminate.')
-    parser.add_argument('--analyze',    '-a',   action='store_true',              help='Calls a function to analyze the previously generated log file. If --analyze is passed (but not --generate) the script will analyze the log specified via --logdir and draw some figures.')
-    parser.add_argument('--ranklog',    '-rl',  action='store_true',              help='Triggers a generation of scripts (when using -g) and an evaluation output, and analysis (when using -a) for neuron ranking corellations.')
+    parser.add_argument('--colormap',   '-cm',  type=str, default='Dark2',        help='The colormap to use for rendering the output figures. Must be a valid choice from matplotlib.cm .')
+    parser.add_argument('--logfile',    '-l',   type=str, default='./log.txt',    help='Output log file location. Results will be appended. File location (folder) must exist!')
+    parser.add_argument('--generate',   '-g',   action='store_true',              help='Calls a function to generate a bunch of parameterized function calls and prepares output locations for the scripts. Recommendation: First call this tool with "-g", then execute the generated scripts. If --generate is passed, the script will only generate the scripts and then terminate, disregarding all other settings.')
+    parser.add_argument('--analyze',    '-a',   action='store_true',              help='Calls a function to analyze the previously generated log file. If --analyze is passed (but not --generate) the script will analyze the log specified via --logdir and draw some figures or write some tables.')
+    parser.add_argument('--ranklog',    '-rl',  action='store_true',              help='Triggers a generation of scripts (when using -g), and an evaluation output and analysis (when using -a) for neuron rank corellations and and neuron set intersection.')
     parser.add_argument('--noisytest',  '-nt',  type=float, default=0.0,          help='The -nt parameter specifies the intensity of some EXTRA gaussian noise added to the dataset. That is, given the parameter >0, a secondary larger test set will be generated just for the purpose of testing the model (not for pruning).')
     args = parser.parse_args()
 

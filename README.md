@@ -23,8 +23,11 @@ First, familiarize yourself with the command line options.
 ```
 $ python main.py --help
 
-usage: main.py [-h] [--dataset DATASET] [--criterion CRITERION] [--numsamples NUMSAMPLES] [--seed SEED] [--rendermode RENDERMODE]
-               [--colormap COLORMAP] [--logfile LOGFILE] [--generate] [--analyze] [--ranklog]
+usage: main.py [-h] [--dataset DATASET] [--criterion CRITERION]
+               [--numsamples NUMSAMPLES] [--seed SEED]
+               [--rendermode RENDERMODE] [--colormap COLORMAP]
+               [--logfile LOGFILE] [--generate] [--analyze] [--ranklog]
+               [--noisytest NOISYTEST]
 
 Neural Network Pruning Toy experiment
 
@@ -33,23 +36,43 @@ optional arguments:
   --dataset DATASET, -d DATASET
                         The toy dataset to use. Choices: moon, circle, mult
   --criterion CRITERION, -c CRITERION
-                        The criterion to use for pruning. Choices: lrp, taylor, grad, weight
+                        The criterion to use for pruning. Choices: lrp,
+                        taylor, grad, weight
   --numsamples NUMSAMPLES, -n NUMSAMPLES
-                        Number of training samples to use for computing the pruning criterion.
-  --seed SEED, -s SEED  Random seed used for (random) sample selection for pruning criterion computation.
+                        Number of training samples to use for computing the
+                        pruning criterion.
+  --seed SEED, -s SEED  Random seed used for (random) sample selection for
+                        pruning criterion computation/testing.
   --rendermode RENDERMODE, -r RENDERMODE
-                        Is result visualization desired? Choices: none, svg, show
+                        Is result visualization desired? Choices: none, svg,
+                        show
   --colormap COLORMAP, -cm COLORMAP
-                        The colormap to use for rendering the output figures. Must be a valid one from matplotlib.
+                        The colormap to use for rendering the output figures.
+                        Must be a valid choice from matplotlib.cm .
   --logfile LOGFILE, -l LOGFILE
-                        Output log file location. Results will pe appended. File location (folder) must exist!!!
-  --generate, -g        Calls a function to generate a bunch of parameterized function calls. Recommendation: First call this tool with "-g",
-                        then execute the generated scripts. If --generate is passed, the script will only generate the scripts and then
-                        terminate.
-  --analyze, -a         Calls a function to analyze the previously generated log file. If --analyze is passed (but not --generate) the script
-                        will analyze the log specified via --logdir and draw some figures.
-  --ranklog, -rl        Triggers a generation of scripts (when using -g) and an evaluation output, and analysis (when using -a) for neuron
-                        ranking corellations.
+                        Output log file location. Results will be appended.
+                        File location (folder) must exist!
+  --generate, -g        Calls a function to generate a bunch of parameterized
+                        function calls and prepares output locations for the
+                        scripts. Recommendation: First call this tool with
+                        "-g", then execute the generated scripts. If
+                        --generate is passed, the script will only generate
+                        the scripts and then terminate, disregarding all other
+                        settings.
+  --analyze, -a         Calls a function to analyze the previously generated
+                        log file. If --analyze is passed (but not --generate)
+                        the script will analyze the log specified via --logdir
+                        and draw some figures or write some tables.
+  --ranklog, -rl        Triggers a generation of scripts (when using -g), and
+                        an evaluation output and analysis (when using -a) for
+                        neuron rank corellations and and neuron set
+                        intersection.
+  --noisytest NOISYTEST, -nt NOISYTEST
+                        The -nt parameter specifies the intensity of some
+                        EXTRA gaussian noise added to the dataset. That is,
+                        given the parameter >0, a secondary larger test set
+                        will be generated just for the purpose of testing the
+                        model (not for pruning).
 ```
 
 Now, in order to (re)create our results, you can either (re)generate the our toy experiment scripts using the `--generate` (`-g`) switch.
