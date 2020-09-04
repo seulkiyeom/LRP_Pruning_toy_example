@@ -16,6 +16,23 @@
 *2nd row:* Model evaluation on unseen samples, which have also been used for the computation of pruning criteria.
 *Columns:* Results over different datasets. Solid lines show the average post-pruning performance of the models pruned w.r.t. to the evaluated criteria “weight” (black), “taylor” (blue), “grad(ient)” (green) and “lrp” (red) over 50 repetitions ofthe experiment. The dashed black line indicates the model’s evaluation performance without pruning. Shaded areas around the lines show the standard deviation over the repetition of experiments.
 
+## Citing
+
+If you make use of, or are inspired by our work and code, please cite our paper
+```
+@article{yeom2019pruning,
+  title={Pruning by explaining: A novel criterion for deep neural network pruning},
+  author={Yeom, Seul-Ki and
+          Seegerer, Philipp and
+          Lapuschkin, Sebastian and
+          Wiedemann, Simon and
+          M{\"u}ller, Klaus-Robert and
+          Samek, Wojciech},
+  journal={arXiv preprint arXiv:1912.08881},
+  year={2019}
+}
+
+```
 
 ## How to use
 
