@@ -252,7 +252,7 @@ class PruningFineTuner:
         X_train = np.load('data/' + str(self.dataset) + '_train_X.npy')
         y_train_true = np.load('data/' + str(self.dataset) + '_train_y.npy')
 
-        X_test, y_test_true = self.generate_data(self.dataset, n_samples, self.random_seed+1)
+        X_test, y_test_true = self.generate_data(self.dataset, n_samples, self.random_seed)
 
         X_train         = X_train.astype(np.float32)
         y_train_true    = y_train_true.astype(np.int64)
@@ -306,13 +306,13 @@ class PruningFineTuner:
 
 
     def generate_data(self, dset_name, n_samples, random_seed):
+        np.random.seed(random_seed)
         # ad-hoc generate test data instead, using the previously set random seed
         if self.dataset == 'moon':
             X_test, y_test_true = make_moons(n_samples=n_samples, noise=0.1, random_state=random_seed)
         elif self.dataset == 'circle':
             X_test, y_test_true = make_circles(n_samples=n_samples, noise=0.1, factor=0.3, random_state=random_seed)
         elif self.dataset == 'mult':
-            np.random.seed(random_seed)
             D = 2  # dimensionality
             K = 4  # number of classes
             N = int(n_samples/K) #samples per class
