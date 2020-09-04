@@ -13,7 +13,7 @@
 ![The influence of the number of referenece samples to the performance of the pruned model](output-noisytest-0.3/combined-processed-0.3.png)
 **Pruning performance comparison of criteria depending on the number of reference samples per class used for criterion computation.**
 *1st row:* Model evaluation on the training data.
-*2nd row:* Model evaluation on an unseen test dataset with added gaussian noise ($\mathcal{N}(0,0.3)$), which have *not* been used for the computation of pruning criteria.
+*2nd row:* Model evaluation on an unseen test dataset with added gaussian noise <img src="https://render.githubusercontent.com/render/math?math=\mathcal{N}(0,0.3)">, which have *not* been used for the computation of pruning criteria.
 *Columns:* Results over different datasets.
 Solid lines show the average post-pruning performance of the models pruned w.r.t. to the evaluated criteria
 "weight" (black), "taylor" (blue), "grad(ient)" (green) and "lrp" (red) over 50 repetitions of the experiment.
