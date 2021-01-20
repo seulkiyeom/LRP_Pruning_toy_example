@@ -925,7 +925,7 @@ if __name__ == "__main__":
                         plt.fill_between(x, y_avg-y_std, np.minimum(y_avg+y_std,100), color=color, alpha=0.2)
                         plt.plot(x, y_avg, color=color, label=crit_name)
                         #plt.xticks(x,[int(i) if i in [10,50,100,200] else '' for i in x], ha='right')
-                        plt.xticks(x,[int(i) if i in [1,5,10,20,50,100,200] else '' for i in x], ha='right') # more tick marks for log scale
+                        plt.xticks(x,[int(i) if i in [1,2,5,10,20,50,100,200] else '' for i in x], ha='right') # more tick marks for log scale
                         plt.gca().xaxis.grid(True, 'major')
                         plt.legend(loc='lower right')
 
