@@ -872,6 +872,8 @@ if __name__ == "__main__":
                     plt.title('{}, on {} data'.format(dset_name, scenario_name))
                     plt.xlabel('samples used to compute criteria')
                     plt.ylabel('performance after pruning in %')
+                    plt.xscale('log') # show x-axis in log scale, as suggested by reviewer
+                    plt.gca().tick_params(which='minor', length=0) # hide minor log scale ticks
 
                     current_data = data[(data[:,dset] == dset_name) *(data[:,scenario] == scenario_name)] # get the currently relevant data for "this" line plot
                     x = current_data[:,n].astype(n_t)
@@ -922,8 +924,9 @@ if __name__ == "__main__":
                         color = color_per_criterion(crit_name)
                         plt.fill_between(x, y_avg-y_std, np.minimum(y_avg+y_std,100), color=color, alpha=0.2)
                         plt.plot(x, y_avg, color=color, label=crit_name)
-                        plt.xticks(x,[int(i) if i in [10,50,100,200] else '' for i in x], ha='right')
-                        plt.gca().xaxis.grid(True)
+                        #plt.xticks(x,[int(i) if i in [10,50,100,200] else '' for i in x], ha='right')
+                        plt.xticks(x,[int(i) if i in [1,5,10,20,50,100,200] else '' for i in x], ha='right') # more tick marks for log scale
+                        plt.gca().xaxis.grid(True, 'major')
                         plt.legend(loc='lower right')
 
                         # print out some stats for the table/figure description
@@ -933,10 +936,15 @@ if __name__ == "__main__":
 
                     plt.xlim([x_min, x_max])
                     #save figure
-                    figname = '{}/{}-{}.svg'.format(logdir, dset_name, scenario_name)
-                    print('Saving result figure to {}'.format(figname))
-                    plt.savefig(figname)
-                    plt.show()
+
+                    if args.rendermode in ['svg']:
+                        figname = '{}/{}-{}.svg'.format(logdir, dset_name, scenario_name)
+                        print('Saving result figure to {}'.format(figname))
+                        plt.savefig(figname)
+
+                    if args.rendermode in ['show']:
+                        plt.show()
+
                     plt.close()
 
 
@@ -960,7 +968,7 @@ if __name__ == "__main__":
     parser.add_argument('--colormap',   '-cm',  type=str, default='Dark2',        help='The colormap to use for rendering the output figures. Must be a valid choice from matplotlib.cm .')
     parser.add_argument('--logfile',    '-l',   type=str, default='./log.txt',    help='Output log file location. Results will be appended. File location (folder) must exist!')
     parser.add_argument('--generate',   '-g',   action='store_true',              help='Calls a function to generate a bunch of parameterized function calls and prepares output locations for the scripts. Recommendation: First call this tool with "-g", then execute the generated scripts. If --generate is passed, the script will only generate the scripts and then terminate, disregarding all other settings.')
-    parser.add_argument('--analyze',    '-a',   action='store_true',              help='Calls a function to analyze the previously generated log file. If --analyze is passed (but not --generate) the script will analyze the log specified via --logdir and draw some figures or write some tables.')
+    parser.add_argument('--analyze',    '-a',   action='store_true',              help='Calls a function to analyze the previously generated log file. If --analyze is passed (but not --generate) the script will analyze the log specified via --logfile and draw some figures or write some tables.')
     parser.add_argument('--ranklog',    '-rl',  action='store_true',              help='Triggers a generation of scripts (when using -g), and an evaluation output and analysis (when using -a) for neuron rank corellations and and neuron set intersection.')
     parser.add_argument('--noisytest',  '-nt',  type=float, default=0.0,          help='The -nt parameter specifies the intensity of some EXTRA gaussian noise added to the dataset. That is, given the parameter >0, a secondary larger test set will be generated just for the purpose of testing the model (not for pruning).')
     args = parser.parse_args()
