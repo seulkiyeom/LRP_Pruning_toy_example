@@ -82,8 +82,8 @@ optional arguments:
                         settings.
   --analyze, -a         Calls a function to analyze the previously generated
                         log file. If --analyze is passed (but not --generate)
-                        the script will analyze the log specified via --logdir
-                        and draw some figures or write some tables.
+                        the script will analyze the log specified via
+                        --logfile and draw some figures or write some tables.
   --ranklog, -rl        Triggers a generation of scripts (when using -g), and
                         an evaluation output and analysis (when using -a) for
                         neuron rank corellations and and neuron set
