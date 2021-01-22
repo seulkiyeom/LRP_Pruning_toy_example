@@ -1,16 +1,21 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from cycler import cycler
 
 if __name__ == '__main__':
+    weight_as_hline = False
 
     columns = ["dset", "Criterion", "n", "s", "scenario", "stage",
                  "Train Accuracy"]
     df = pd.read_csv("output/log.txt", sep="-| ", names=columns)
 
-    # Remove weight criterion (does not depend on n)
+    # Remove weight criterion (does not depend on n), is added as hline
     df = df[~df.Criterion.str.contains("criterion:weight")]
+    w_acc = {
+        "moon": 99.6,
+        "circle": 97.1,
+        "mult": 91.0,
+    }
 
     # Clean up dataframe
     df.Criterion = df.Criterion.str.replace("criterion:", "")
@@ -31,8 +36,7 @@ if __name__ == '__main__':
     num_reference_samples = [1, 5, 20, 100]
 
     # Define colormap
-    default_cycler = cycler(color=['yellowgreen', 'cornflowerblue', 'indianred', "k"])
-    plt.rc('axes', prop_cycle=default_cycler)
+    color_map = {"G": "yellowgreen", "T": "cornflowerblue", "L": "indianred"}
 
     for i, dset in enumerate(["moon", "circle", "mult"]):
         df["n"] = df.n_orig // n_mapping[dset]
@@ -43,11 +47,21 @@ if __name__ == '__main__':
         plt.subplots_adjust(left=0.19, right=0.99, top=0.93, bottom=0.13)
         plt.ylim([33, 100])
 
-        sns.boxplot(data=df_dset, y="Train Accuracy", x="n", hue="Criterion", showmeans=False, ax=plt.gca(), hue_order=list("GTL"), fliersize=0)
+        if weight_as_hline:
+            # Weight criterion as horizontal line
+            plt.axhline(y=w_acc[dset], linestyle="--", color="k", label="W", alpha=0.5)
+
+        sns.boxplot(data=df_dset, y="Train Accuracy", x="n", hue="Criterion", showmeans=False, ax=plt.gca(), hue_order=list("GTL"), fliersize=0, palette=color_map)
         if i > 0:
             plt.yticks([], [])
             plt.ylabel(None)
             plt.gca().get_legend().remove()
+        if i == 1:
+            plt.xlabel("samples used to compute criteria")
+        else:
+            plt.xlabel(None)
+
         plt.title(dset)
         plt.savefig(f"toy_experiment_train-{dset}.pdf")
+        plt.savefig(f"toy_experiment_train-{dset}.png")
     plt.show()
