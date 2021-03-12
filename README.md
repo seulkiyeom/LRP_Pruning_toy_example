@@ -1,5 +1,6 @@
 # An example for Neural Network Pruning with LRP and other measures, based on 2D toy datasets.
-[>> Link to Preprint  <<](https://arxiv.org/abs/1912.08881)
+**[Link to Paper: "Pruning by Explaining: A Novel Criterion for Deep Neural Network Pruning"](https://www.sciencedirect.com/science/article/pii/S0031320321000868)**
+Also see our code and experiments on large image databases, VGG networks and ResNets: [https://github.com/seulkiyeom/LRP_Pruning](https://github.com/seulkiyeom/LRP_Pruning)
 
 ![The impact Neural Network Pruning to the model's decision boundary](toy-figure-mk2-test.png)
 **Qualitative comparison of the impact of the pruning criteria on the models’ decision function on three toy datasets.**
@@ -24,17 +25,21 @@ Shaded areas around the lines show the standard deviation over the repetition of
 
 If you make use of, or are inspired by our work and code, please cite our paper
 ```
-@article{yeom2019pruning,
+@article{yeom2021pruning,
   title={Pruning by explaining: A novel criterion for deep neural network pruning},
   author={Yeom, Seul-Ki and
           Seegerer, Philipp and
           Lapuschkin, Sebastian and
+          Binder, Alexander and
           Wiedemann, Simon and
           M{\"u}ller, Klaus-Robert and
           Samek, Wojciech},
-  journal={arXiv preprint arXiv:1912.08881},
-  year={2019}
+  journal={Pattern Recognition},
+  pages={107899},
+  year={2021},
+  publisher={Elsevier}
 }
+
 
 ```
 
